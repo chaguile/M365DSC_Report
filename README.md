@@ -83,7 +83,7 @@ Aparecerá el menú. Sigue el paso marcado como `<-- SIGUIENTE`.
 | **4. Exportar tenant** | Ejecuta el export (SharePoint en proceso aislado) y fusiona todo en `M365TenantConfig.ps1`. Repite este bloque para cada tenant a comparar. |
 | **5. Eliminar App** | Desmantela la App Registration, permisos, certificados y ficheros generados. |
 | **6. Verificar tenants** | Comprueba que cada `M365TenantConfig.ps1` está en su carpeta bajo `Tenants\` y tiene datos. |
-| **7. Generar reporte** | **Auto-detecta** los `M365TenantConfig.ps1` de `Tenants\` y te deja elegir cuáles comparar (o todas). Sugiere `Modelo` como *baseline* y guarda el HTML en `Reportes\`. |
+| **7. Generar reporte** | **Auto-detecta** los `M365TenantConfig.ps1` de `Tenants\` y te deja elegir cuáles comparar (o todas). Sugiere `Baseline` como *baseline* y guarda el HTML en `Reports\`. |
 
 ---
 
@@ -113,14 +113,13 @@ C:\M365DSC\
 │  ├─ Invoke-M365DSCReport.ps1      # el orquestador (este script)
 │  ├─ ConfigurationFile.ps1         # consulta generada en export.microsoft365dsc.com
 │  ├─ catalog.json                  # descripciones y enlaces por recurso (reporte)
-│  ├─ branding.json                 # tu marca y logo (opcional, ver más abajo)
 │  └─ logo.svg                      # tu logo embebido en el reporte (opcional)
 ├─ Export\                          # salida del export por tenant
 ├─ Tenants\
-│  ├─ Modelo\    M365TenantConfig.ps1   # tenant de referencia (baseline)
-│  ├─ ClienteA\ M365TenantConfig.ps1
-│  └─ ClienteB\ M365TenantConfig.ps1
-└─ Reportes\                        # reportes HTML generados
+│  ├─ Baseline\  M365TenantConfig.ps1   # tenant de referencia (baseline)
+│  ├─ SnapshotA\ M365TenantConfig.ps1
+│  └─ SnapshotB\ M365TenantConfig.ps1
+└─ Reports\                         # reportes HTML generados
 ```
 
 ---
@@ -129,7 +128,7 @@ C:\M365DSC\
 
 1. **Por cada tenant** a comparar: pasos 1 → 4 (y 5 para limpiar al terminar).
    Copia cada `M365TenantConfig.ps1` resultante a su carpeta bajo `Tenants\`.
-   El tenant más completo se usa como *baseline* (carpeta `Modelo`).
+   El tenant más completo se usa como *baseline* (carpeta `Baseline`).
 2. **Una vez** tengas 2 o más configuraciones: pasos 6 → 7 para generar el
    reporte comparativo.
 

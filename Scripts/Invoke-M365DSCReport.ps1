@@ -111,12 +111,11 @@ function Invoke-SetupStep {
     Write-Step "Creando la estructura de carpetas"
     $folders = @(
         (Join-Path $Root 'Scripts')
-        (Join-Path $Root 'Componentes')
         (Join-Path $Root 'Export')
-        (Join-Path $Root 'Reportes')
-        (Join-Path $Root 'Tenants\Modelo')
-        (Join-Path $Root 'Tenants\ClienteA')
-        (Join-Path $Root 'Tenants\ClienteB')
+        (Join-Path $Root 'Reports')
+        (Join-Path $Root 'Tenants\Baseline')
+        (Join-Path $Root 'Tenants\SnapshotA')
+        (Join-Path $Root 'Tenants\SnapshotB')
     )
     foreach ($f in $folders) {
         if (Test-Path $f) { Write-Ok "$f (ya existe)" }
@@ -1642,10 +1641,10 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     for ($k = 0; $k -lt $Labels.Count; $k++) {
         Write-Host ("   [{0}] {1}" -f ($k+1), $Labels[$k]) -ForegroundColor Gray
     }
-    # Por defecto se sugiere la carpeta "Modelo" como baseline, si existe
+    # Por defecto se sugiere la carpeta "Baseline" como baseline, si existe
     $defaultBase = 1
     for ($k = 0; $k -lt $Labels.Count; $k++) {
-        if ($Labels[$k] -match '^(?i)modelo$') { $defaultBase = $k + 1; break }
+        if ($Labels[$k] -match '^(?i)baseline$') { $defaultBase = $k + 1; break }
     }
     $BaselineIndex = -1
     while ($BaselineIndex -lt 0 -or $BaselineIndex -ge $Labels.Count) {
@@ -1656,8 +1655,8 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     Write-Ok "Baseline: $($Labels[$BaselineIndex])"
 
     Write-Step "Salida"
-    $defaultOut = if (Test-Path (Join-Path $Root 'Reportes')) {
-                      Join-Path $Root ("Reportes\baseline-{0}.html" -f (Get-Date -Format 'yyyy-MM'))
+    $defaultOut = if (Test-Path (Join-Path $Root 'Reports')) {
+                      Join-Path $Root ("Reports\baseline-{0}.html" -f (Get-Date -Format 'yyyy-MM'))
                   } else {
                       Join-Path $PWD.Path "M365DSC-Baseline.html"
                   }
@@ -2026,7 +2025,8 @@ $payload = @{
 $json = $payload | ConvertTo-Json -Depth 20 -Compress
 $json = $json.Replace('</script>', '<\/script>')
 
-$clientLine = if ($report.Client) { " &middot; $($report.Client)" } else { "" }
+# Se usa el caracter real (no la entidad HTML) porque se inserta via textContent en JS
+$clientLine = if ($report.Client) { " $([char]0x00B7) $($report.Client)" } else { "" }
 
 # Fragmentos de marca para la plantilla (vacios si no hay branding)
 $brandSuffix = if ($BrandName) { " | $BrandName" } else { "" }
@@ -2704,8 +2704,8 @@ $html = @"
   }
 
   function downloadCsv(rows, filename) {
-    // sep=; hace que Excel en configuracion regional ES abra las columnas bien
-    const text = 'sep=;\r\n' + rows.map(r => r.map(csvCell).join(';')).join('\r\n');
+    // Separador coma (CSV estandar)
+    const text = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
     // BOM UTF-8 para que Excel respete los acentos
     const blob = new Blob([String.fromCharCode(0xFEFF) + text],
                           { type: 'text/csv;charset=utf-8;' });
@@ -3443,9 +3443,9 @@ function Invoke-VerifyTenantsStep {
     Write-Host ("=" * 66) -ForegroundColor Cyan
     Write-Host ""
     Write-Host " Coloca el M365TenantConfig.ps1 de cada tenant en su carpeta:" -ForegroundColor Gray
-    Write-Host "   $tenants\Modelo\M365TenantConfig.ps1     (el tenant mas completo)" -ForegroundColor DarkGray
-    Write-Host "   $tenants\ClienteA\M365TenantConfig.ps1" -ForegroundColor DarkGray
-    Write-Host "   $tenants\ClienteB\M365TenantConfig.ps1" -ForegroundColor DarkGray
+    Write-Host "   $tenants\Baseline\M365TenantConfig.ps1     (el tenant mas completo / de referencia)" -ForegroundColor DarkGray
+    Write-Host "   $tenants\SnapshotA\M365TenantConfig.ps1" -ForegroundColor DarkGray
+    Write-Host "   $tenants\SnapshotB\M365TenantConfig.ps1" -ForegroundColor DarkGray
     Write-Host ""
 
     if (-not (Test-Path $tenants)) {
@@ -3478,7 +3478,7 @@ function Get-State {
     $scripts  = Join-Path $Root 'Scripts'
     $export   = Join-Path $Root 'Export'
     $tenants  = Join-Path $Root 'Tenants'
-    $reportes = Join-Path $Root 'Reportes'
+    $reportes = Join-Path $Root 'Reports'
 
     $moduleOk = [bool](Get-Module -ListAvailable -Name Microsoft365DSC)
     $foldersOk = (Test-Path $scripts) -and (Test-Path $export) -and (Test-Path $tenants) -and (Test-Path $reportes)
@@ -3521,7 +3521,7 @@ function Show-Menu {
     Clear-Host
     Write-Host ("=" * 68) -ForegroundColor Cyan
     Write-Host "  MICROSOFT 365 DSC - REPORTE DE BASELINE" -ForegroundColor Cyan
-    Write-Host "  Orquestador  ($Root)" -ForegroundColor DarkCyan
+    Write-Host "  Creado por: Christian Aguilera - FendariGroup" -ForegroundColor DarkCyan
     Write-Host ("=" * 68) -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  PROCESO 1 - EXPORTAR LA CONFIGURACION DE CADA TENANT" -ForegroundColor White
