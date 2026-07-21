@@ -1676,11 +1676,11 @@ if (-not $CatalogPath) {
     # Se busca en varias ubicaciones para que el catalogo se encuentre aunque el
     # script se ejecute desde otra carpeta (junto al script, en Scripts\, en $Root).
     $catCandidates = @(
-        (Join-Path $scriptDir2 'catalogo-recursos.json')
-        (Join-Path $scriptDir2 'Scripts\catalogo-recursos.json')
-        (Join-Path $Root       'Scripts\catalogo-recursos.json')
-        (Join-Path $PWD.Path   'catalogo-recursos.json')
-        (Join-Path $PWD.Path   'Scripts\catalogo-recursos.json')
+        (Join-Path $scriptDir2 'catalog.json')
+        (Join-Path $scriptDir2 'Scripts\catalog.json')
+        (Join-Path $Root       'Scripts\catalog.json')
+        (Join-Path $PWD.Path   'catalog.json')
+        (Join-Path $PWD.Path   'Scripts\catalog.json')
     )
     $CatalogPath = $catCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $CatalogPath) { $CatalogPath = $catCandidates[0] }

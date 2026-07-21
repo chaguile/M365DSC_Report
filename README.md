@@ -112,7 +112,7 @@ C:\M365DSC\
 ├─ Scripts\
 │  ├─ Invoke-M365DSCReport.ps1      # el orquestador (este script)
 │  ├─ ConfigurationFile.ps1         # consulta generada en export.microsoft365dsc.com
-│  ├─ catalogo-recursos.json        # descripciones y enlaces por recurso (reporte)
+│  ├─ catalog.json                  # descripciones y enlaces por recurso (reporte)
 │  ├─ branding.json                 # tu marca y logo (opcional, ver más abajo)
 │  └─ logo.svg                      # tu logo embebido en el reporte (opcional)
 ├─ Export\                          # salida del export por tenant
