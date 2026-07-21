@@ -83,7 +83,7 @@ Aparecerá el menú. Sigue el paso marcado como `<-- SIGUIENTE`.
 | **4. Exportar tenant** | Ejecuta el export (SharePoint en proceso aislado) y fusiona todo en `M365TenantConfig.ps1`. Repite este bloque para cada tenant a comparar. |
 | **5. Eliminar App** | Desmantela la App Registration, permisos, certificados y ficheros generados. |
 | **6. Verificar tenants** | Comprueba que cada `M365TenantConfig.ps1` está en su carpeta bajo `Tenants\` y tiene datos. |
-| **7. Generar reporte** | Compara todas las configuraciones contra la *baseline* y produce el HTML. |
+| **7. Generar reporte** | **Auto-detecta** los `M365TenantConfig.ps1` de `Tenants\` y te deja elegir cuáles comparar (o todas). Sugiere `Modelo` como *baseline* y guarda el HTML en `Reportes\`. |
 
 ---
 

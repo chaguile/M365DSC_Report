@@ -1572,26 +1572,69 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     Write-Host ("=" * 68) -ForegroundColor Cyan
 
     Write-Step "Configuraciones a comparar"
-    Write-Host " Introduce la ruta de cada M365TenantConfig.ps1." -ForegroundColor Gray
-    Write-Host " Deja vacio para terminar (minimo 2)." -ForegroundColor Gray
 
     $ConfigPaths = @(); $Labels = @()
-    $i = 1
-    while ($true) {
-        $p = (Read-Host " Config #$i").Trim('"').Trim()
-        if ([string]::IsNullOrWhiteSpace($p)) {
-            if ($ConfigPaths.Count -ge 2) { break }
-            Write-Warn "Se necesitan al menos 2"
-            continue
+
+    # Auto-descubrir los M365TenantConfig.ps1 que dejaste bajo Tenants\
+    $tenantsDir = Join-Path $Root 'Tenants'
+    $detected = @()
+    if (Test-Path $tenantsDir) {
+        $detected = @(Get-ChildItem $tenantsDir -Recurse -Filter 'M365TenantConfig.ps1' -ErrorAction SilentlyContinue |
+                      Sort-Object { $_.Directory.Name })
+    }
+
+    if ($detected.Count -ge 1) {
+        Write-Host " Configuraciones detectadas en $tenantsDir :" -ForegroundColor Gray
+        for ($k = 0; $k -lt $detected.Count; $k++) {
+            $kb = [math]::Round($detected[$k].Length / 1KB, 1)
+            Write-Host ("   [{0}] {1,-16} {2,8} KB   {3}" -f ($k + 1), $detected[$k].Directory.Name, $kb, $detected[$k].FullName) -ForegroundColor Gray
         }
-        if (-not (Test-Path $p)) { Write-Err "No existe: $p"; continue }
+        Write-Host ""
+        Write-Host " Enter = todas  |  numeros separados por coma (ej. 1,3)  |  M = escribir rutas a mano" -ForegroundColor DarkGray
+        $sel = (Read-Host " Seleccion").Trim()
 
-        $defaultLabel = (Get-Item $p).Directory.Name
-        $l = Read-WithDefault "   Etiqueta para esta columna" $defaultLabel
+        if ($sel.ToUpper() -ne 'M') {
+            $picks = @()
+            if ([string]::IsNullOrWhiteSpace($sel)) {
+                $picks = 0..($detected.Count - 1)
+            } else {
+                foreach ($tok in ($sel -split '[,\s]+')) {
+                    $n = 0
+                    if ([int]::TryParse($tok, [ref]$n) -and $n -ge 1 -and $n -le $detected.Count) { $picks += ($n - 1) }
+                }
+                $picks = @($picks | Select-Object -Unique)
+            }
+            foreach ($idx in $picks) {
+                $ConfigPaths += $detected[$idx].FullName
+                $Labels      += $detected[$idx].Directory.Name
+            }
+            if ($ConfigPaths.Count -ge 1) {
+                Write-Ok "$($ConfigPaths.Count) seleccionadas: $($Labels -join ', ')"
+            }
+        }
+    }
 
-        $ConfigPaths += $p
-        $Labels      += $l
-        $i++
+    # Modo manual: si no se detecto nada, elegiste M, o faltan configuraciones
+    if ($ConfigPaths.Count -lt 2) {
+        if ($detected.Count -eq 0) { Write-Warn "No se detectaron configuraciones en $tenantsDir" }
+        Write-Host " Introduce la ruta de cada M365TenantConfig.ps1 (Enter vacio para terminar, minimo 2)." -ForegroundColor Gray
+        $i = $ConfigPaths.Count + 1
+        while ($true) {
+            $p = (Read-Host " Config #$i").Trim('"').Trim()
+            if ([string]::IsNullOrWhiteSpace($p)) {
+                if ($ConfigPaths.Count -ge 2) { break }
+                Write-Warn "Se necesitan al menos 2"
+                continue
+            }
+            if (-not (Test-Path $p)) { Write-Err "No existe: $p"; continue }
+
+            $defaultLabel = (Get-Item $p).Directory.Name
+            $l = Read-WithDefault "   Etiqueta para esta columna" $defaultLabel
+
+            $ConfigPaths += $p
+            $Labels      += $l
+            $i++
+        }
     }
 
     Write-Step "Configuracion de referencia (baseline)"
@@ -1599,16 +1642,26 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     for ($k = 0; $k -lt $Labels.Count; $k++) {
         Write-Host ("   [{0}] {1}" -f ($k+1), $Labels[$k]) -ForegroundColor Gray
     }
+    # Por defecto se sugiere la carpeta "Modelo" como baseline, si existe
+    $defaultBase = 1
+    for ($k = 0; $k -lt $Labels.Count; $k++) {
+        if ($Labels[$k] -match '^(?i)modelo$') { $defaultBase = $k + 1; break }
+    }
     $BaselineIndex = -1
     while ($BaselineIndex -lt 0 -or $BaselineIndex -ge $Labels.Count) {
-        $v = Read-WithDefault " Cual es la baseline" "1"
+        $v = Read-WithDefault " Cual es la baseline" "$defaultBase"
         $n = 0; [int]::TryParse($v, [ref]$n) | Out-Null
         $BaselineIndex = $n - 1
     }
     Write-Ok "Baseline: $($Labels[$BaselineIndex])"
 
     Write-Step "Salida"
-    $OutputPath  = Read-WithDefault " Ruta del HTML" (Join-Path $PWD.Path "M365DSC-Baseline.html")
+    $defaultOut = if (Test-Path (Join-Path $Root 'Reportes')) {
+                      Join-Path $Root ("Reportes\baseline-{0}.html" -f (Get-Date -Format 'yyyy-MM'))
+                  } else {
+                      Join-Path $PWD.Path "M365DSC-Baseline.html"
+                  }
+    $OutputPath  = Read-WithDefault " Ruta del HTML" $defaultOut
     $ReportTitle = Read-WithDefault " Titulo del reporte" "Comparacion de baseline Microsoft 365"
     $ClientName  = Read-WithDefault " Cliente / organizacion (opcional)" ""
 
