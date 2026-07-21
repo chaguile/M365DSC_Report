@@ -186,6 +186,6 @@ texto completo.
 
 ## Autor
 
-**Christian Aguilera**
-**FendariGroup**
+**Christian Aguilera - FendariGroup**
+```
 **Https://www.fendarigroup.com**
