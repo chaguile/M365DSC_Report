@@ -47,6 +47,9 @@ Scripts/logo.webp
 # Logo propio actual (renombralo a Scripts/logo.svg si quieres seguir usandolo en local)
 Scripts/FendariLogoVectorizado.svg
 
+# Copia suelta/antigua del script en la raiz (el bueno esta en Scripts/)
+/Invoke-M365DSCReport.ps1
+
 # --- Trabajo temporal del export ---
 **/_parts/
 
