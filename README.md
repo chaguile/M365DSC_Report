@@ -142,35 +142,20 @@ C:\M365DSC\
 
 ## Personalización (marca y logo)
 
-El reporte **no lleva ninguna marca hardcodeada**. Por defecto sale genérico
-("Microsoft365DSC Baseline Report", sin logo ni eslogan). Para poner la tuya, sin
-tocar el código, tienes dos opciones (combinables):
+El reporte **no lleva ninguna marca hardcodeada**. El paso 7 (Generar reporte)
+**pregunta la marca por pantalla** cada vez, para que no se te olvide:
 
-1. **Logo rápido**: deja un archivo `logo.svg` (o `logo.png`, `logo.jpg`) junto a
-   `Invoke-M365DSCReport.ps1`. Se detecta y se incrusta automáticamente.
+- **Nombre / organización** → aparece en el `<title>` y en el pie de página.
+- **Eslogan** → aparece en la cabecera (se oculta si lo dejas en blanco).
+- **Ruta del logo** → SVG/PNG/JPG/GIF/WEBP, se incrusta en el HTML. Si dejas un
+  archivo `logo.svg` (o `logo.png`, `logo.jpg`) junto al script, se ofrece como
+  valor por defecto.
 
-2. **Marca completa**: copia `branding.example.json` como `branding.json` en la
-   misma carpeta y edítalo:
+Cualquier campo que dejes en blanco simplemente se omite (el reporte sale
+genérico: "Microsoft365DSC Baseline Report", sin logo ni eslogan).
 
-   ```json
-   {
-     "name": "Mi Organización",
-     "tagline": "Mi eslogan opcional",
-     "logo": "logo.svg"
-   }
-   ```
-
-   | Clave | Efecto en el reporte |
-   |-------|----------------------|
-   | `name` | Nombre en el `<title>` y en el pie de página |
-   | `tagline` | Eslogan en la cabecera (se oculta si está vacío) |
-   | `logo` | Ruta o nombre de archivo del logo (SVG/PNG/JPG/GIF/WEBP) |
-
-   Todas las claves son opcionales. También puedes pasar `-LogoPath` al ejecutar
-   el paso de reporte directamente.
-
-> `branding.json` y `logo.*` son personales: considera añadirlos a `.gitignore`
-> si no quieres publicar tu marca en el repositorio.
+> El `logo.*` es personal: considera añadirlo a `.gitignore` si no quieres
+> publicar tu marca en el repositorio (ya viene ignorado por defecto).
 
 ---
 

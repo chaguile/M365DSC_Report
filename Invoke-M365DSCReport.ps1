@@ -1611,20 +1611,6 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     $OutputPath  = Read-WithDefault " Ruta del HTML" (Join-Path $PWD.Path "M365DSC-Baseline.html")
     $ReportTitle = Read-WithDefault " Titulo del reporte" "Comparacion de baseline Microsoft 365"
     $ClientName  = Read-WithDefault " Cliente / organizacion (opcional)" ""
-
-    Write-Step "Marca del reporte (opcional)"
-    Write-Host " Deja en blanco cualquier campo para omitirlo." -ForegroundColor Gray
-    $BrandName = Read-WithDefault " Nombre / organizacion (cabecera y pie)" ""
-    $Tagline   = Read-WithDefault " Eslogan" ""
-
-    # Se sugiere un logo.* que este junto al script, si existe
-    $scriptDirBrand = if ($PSCommandPath) { Split-Path $PSCommandPath -Parent } else { $PWD.Path }
-    $logoDefault = ''
-    foreach ($cand in @('logo.svg','logo.png','logo.jpg','logo.jpeg','logo.gif','logo.webp')) {
-        $t = Join-Path $scriptDirBrand $cand
-        if (Test-Path $t) { $logoDefault = $t; break }
-    }
-    $LogoPath = (Read-WithDefault " Ruta del logo (SVG/PNG/JPG, vacio = sin logo)" $logoDefault).Trim('"').Trim()
 }
 
 if ([string]::IsNullOrWhiteSpace($ReportTitle)) { $ReportTitle = "Comparacion de baseline Microsoft 365" }
@@ -1637,10 +1623,40 @@ if (-not $OutputPath) { $OutputPath = Join-Path $PWD.Path "M365DSC-Baseline.html
 
 
 # ============================================================
-#  LOGO Y MARCA  (se preguntan por pantalla en el modo interactivo)
+#  MARCA Y LOGO  (configurables: nada queda hardcodeado)
 # ============================================================
-if ($null -eq $BrandName) { $BrandName = '' }
-if ($null -eq $Tagline)   { $Tagline   = '' }
+# Coloca un branding.json junto al script para usar tu propio nombre, eslogan
+# y logo, sin tocar el codigo. Formato (todas las claves opcionales):
+#   { "name": "Mi Empresa", "tagline": "Mi eslogan", "logo": "logo.svg" }
+# Alternativamente, deja un archivo llamado logo.svg / logo.png / logo.jpg
+# junto al script, o pasa -LogoPath.
+$scriptDirBrand = if ($PSCommandPath) { Split-Path $PSCommandPath -Parent } else { $PWD.Path }
+
+$BrandName = ''
+$Tagline   = ''
+
+$brandFile = Join-Path $scriptDirBrand 'branding.json'
+if (Test-Path $brandFile) {
+    try {
+        $b = Get-Content $brandFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($b.PSObject.Properties['name']    -and $b.name)    { $BrandName = "$($b.name)" }
+        if ($b.PSObject.Properties['tagline'] -and $b.tagline) { $Tagline   = "$($b.tagline)" }
+        if (-not $LogoPath -and $b.PSObject.Properties['logo'] -and $b.logo) {
+            $bl = "$($b.logo)"
+            if (-not [IO.Path]::IsPathRooted($bl)) { $bl = Join-Path $scriptDirBrand $bl }
+            if (Test-Path $bl) { $LogoPath = $bl } else { Write-Warn "branding.json: logo no encontrado ($bl)" }
+        }
+        Write-Ok "Branding cargado desde branding.json"
+    } catch { Write-Warn "branding.json no es valido: $($_.Exception.Message)" }
+}
+
+# Logo por nombre generico si no se indico de otra forma
+if (-not $LogoPath) {
+    foreach ($cand in @('logo.svg','logo.png','logo.jpg','logo.jpeg','logo.gif','logo.webp')) {
+        $try = Join-Path $scriptDirBrand $cand
+        if (Test-Path $try) { $LogoPath = $try; break }
+    }
+}
 
 $logoTag = ''
 if ($LogoPath -and (Test-Path $LogoPath)) {
@@ -1661,10 +1677,9 @@ if ($LogoPath -and (Test-Path $LogoPath)) {
     } catch {
         Write-Warn "No se pudo leer el logo: $($_.Exception.Message)"
     }
-} elseif ($LogoPath) {
-    Write-Warn "Logo no encontrado en: $LogoPath (el reporte saldra sin logo)"
 } else {
-    Write-Ok "Reporte sin logo"
+    Write-Warn "Sin logo (opcional). Coloca 'logo.svg' junto al script, usa -LogoPath,"
+    Write-Warn "o define 'logo' en branding.json para incluir el tuyo."
 }
 
 

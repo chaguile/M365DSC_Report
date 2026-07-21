@@ -37,7 +37,6 @@ Scripts/Remove-M365DSCApp.ps1
 # --- Consulta y personalizacion locales ---
 # El de referencia (ConfigurationFileSample.ps1) SI se publica; el real no.
 Scripts/ConfigurationFile.ps1
-Scripts/branding.json
 Scripts/logo.svg
 Scripts/logo.png
 Scripts/logo.jpg
@@ -47,9 +46,6 @@ Scripts/logo.webp
 
 # Logo propio actual (renombralo a Scripts/logo.svg si quieres seguir usandolo en local)
 Scripts/FendariLogoVectorizado.svg
-
-# El ejemplo de branding SI se publica
-!Scripts/branding.example.json
 
 # --- Trabajo temporal del export ---
 **/_parts/
