@@ -32,13 +32,23 @@
       .\Invoke-M365DSCReport.ps1 -Root "D:\M365DSC"
 #>
 
-[CmdletBinding()]
 param(
     [ValidateSet('Menu','Setup','Provision','Export','Report','Remove')]
     [string]$Step = 'Menu',
 
-    [string]$Root = 'C:\M365DSC'
+    [string]$Root = 'C:\M365DSC',
+
+    # Idioma de la interfaz: ES (Espanol) o EN (English). Si se omite, el menu
+    # lo pregunta al inicio. Los sub-pasos lo reciben como parametro.
+    [ValidateSet('ES','EN','')]
+    [string]$Lang = ''
 )
+
+# Idioma activo para toda la sesion (los procesos hijo lo reciben por -Lang)
+$script:Lang = if ($Lang) { $Lang } else { 'ES' }
+
+# Devuelve el texto en el idioma activo:  tr "en espanol" "in english"
+function tr { param([string]$Es, [string]$En) if ($script:Lang -eq 'EN') { $En } else { $Es } }
 
 # ============================================================
 #  AYUDANTES COMPARTIDOS (usados por el menu)
@@ -57,15 +67,16 @@ function Read-WithDefault {
 
 function Read-YesNo {
     param([string]$Prompt, [bool]$Default = $true)
-    $d = if ($Default) { 'S' } else { 'N' }
+    $yes = if ($script:Lang -eq 'EN') { 'Y' } else { 'S' }
+    $d = if ($Default) { $yes } else { 'N' }
     while ($true) {
-        $v = Read-Host "$Prompt (S/N) [$d]"
+        $v = Read-Host "$Prompt ($yes/N) [$d]"
         if ([string]::IsNullOrWhiteSpace($v)) { return $Default }
         switch ($v.Trim().ToUpper()) {
             'S' { return $true }
             'Y' { return $true }
             'N' { return $false }
-            default { Write-Warn "Responde S o N" }
+            default { Write-Warn (tr "Responde S o N" "Answer Y or N") }
         }
     }
 }
@@ -89,10 +100,26 @@ function Test-IsAdmin {
 function Invoke-ChildStep {
     param([string]$Name)
     $exe = Get-PsHost
-    $argline = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Step $Name -Root `"$Root`""
+    $argline = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Step $Name -Root `"$Root`" -Lang $script:Lang"
     Write-Host ""
-    Write-Host "  Lanzando '$Name' en una sesion limpia de PowerShell..." -ForegroundColor DarkCyan
+    Write-Host (tr "  Lanzando '$Name' en una sesion limpia de PowerShell..." "  Launching '$Name' in a clean PowerShell session...") -ForegroundColor DarkCyan
     Start-Process -FilePath $exe -ArgumentList $argline -NoNewWindow -Wait
+}
+
+# Pregunta el idioma al inicio (solo en modo menu)
+function Select-Language {
+    Clear-Host
+    Write-Host ("=" * 68) -ForegroundColor Cyan
+    Write-Host "  MICROSOFT 365 DSC - BASELINE REPORT" -ForegroundColor Cyan
+    Write-Host "  Creado por / Created by: Christian Aguilera - FendariGroup" -ForegroundColor DarkCyan
+    Write-Host ("=" * 68) -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "   Selecciona idioma / Select language:" -ForegroundColor White
+    Write-Host "     1) Espanol" -ForegroundColor Gray
+    Write-Host "     2) English" -ForegroundColor Gray
+    Write-Host ""
+    $v = (Read-Host "   Opcion / Option [1]").Trim()
+    if ($v -eq '2') { return 'EN' } else { return 'ES' }
 }
 
 
@@ -192,15 +219,16 @@ function Read-WithDefault {
 
 function Read-YesNo {
     param([string]$Prompt, [bool]$Default = $true)
-    $d = if ($Default) { 'S' } else { 'N' }
+    $yes = if ($script:Lang -eq 'EN') { 'Y' } else { 'S' }
+    $d = if ($Default) { $yes } else { 'N' }
     while ($true) {
-        $v = Read-Host "$Prompt (S/N) [$d]"
+        $v = Read-Host "$Prompt ($yes/N) [$d]"
         if ([string]::IsNullOrWhiteSpace($v)) { return $Default }
         switch ($v.Trim().ToUpper()) {
             'S' { return $true }
             'Y' { return $true }
             'N' { return $false }
-            default { Write-Warn "Responde S o N" }
+            default { Write-Warn (tr "Responde S o N" "Answer Y or N") }
         }
     }
 }
@@ -937,15 +965,16 @@ function Read-WithDefault {
 
 function Read-YesNo {
     param([string]$Prompt, [bool]$Default = $true)
-    $d = if ($Default) { 'S' } else { 'N' }
+    $yes = if ($script:Lang -eq 'EN') { 'Y' } else { 'S' }
+    $d = if ($Default) { $yes } else { 'N' }
     while ($true) {
-        $v = Read-Host "$Prompt (S/N) [$d]"
+        $v = Read-Host "$Prompt ($yes/N) [$d]"
         if ([string]::IsNullOrWhiteSpace($v)) { return $Default }
         switch ($v.Trim().ToUpper()) {
             'S' { return $true }
             'Y' { return $true }
             'N' { return $false }
-            default { Write-Warn "Responde S o N" }
+            default { Write-Warn (tr "Responde S o N" "Answer Y or N") }
         }
     }
 }
@@ -3514,39 +3543,44 @@ function Show-Menu {
     function Mark { param($key)
         if ($State[$key]) { return '[OK]' } else { return '[  ]' }
     }
+    $nextTag = tr '  <-- SIGUIENTE' '  <-- NEXT'
     function Tag { param($key)
-        if ($next -eq $key) { return '  <-- SIGUIENTE' } else { return '' }
+        if ($next -eq $key) { return $nextTag } else { return '' }
     }
 
     Clear-Host
     Write-Host ("=" * 68) -ForegroundColor Cyan
-    Write-Host "  MICROSOFT 365 DSC - REPORTE DE BASELINE" -ForegroundColor Cyan
-    Write-Host "  Creado por: Christian Aguilera - FendariGroup" -ForegroundColor DarkCyan
+    Write-Host "  MICROSOFT 365 DSC - BASELINE REPORT" -ForegroundColor Cyan
+    Write-Host "  Creado por / Created by: Christian Aguilera - FendariGroup" -ForegroundColor DarkCyan
     Write-Host ("=" * 68) -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  PROCESO 1 - EXPORTAR LA CONFIGURACION DE CADA TENANT" -ForegroundColor White
-    Write-Host ("   1) {0} Preparar entorno (carpetas, modulo, dependencias){1}" -f (Mark 'Setup'),     (Tag 'Setup'))     -ForegroundColor Gray
-    Write-Host ("   2) {0} Generar consulta de export -> ConfigurationFile.ps1{1}" -f (Mark 'Query'),    (Tag 'Query'))    -ForegroundColor Gray
-    Write-Host ("   3) {0} Provisionar App Registration (certificado){1}" -f (Mark 'Provision'),         (Tag 'Provision')) -ForegroundColor Gray
-    Write-Host ("   4) {0} Exportar el tenant -> M365TenantConfig.ps1{1}" -f (Mark 'Export'),            (Tag 'Export'))    -ForegroundColor Gray
-    Write-Host  "   5) [  ] Eliminar App Registration (limpieza tras exportar)" -ForegroundColor Gray
+    Write-Host (tr "  PROCESO 1 - EXPORTAR LA CONFIGURACION DE CADA TENANT" "  PROCESS 1 - EXPORT EACH TENANT'S CONFIGURATION") -ForegroundColor White
+    Write-Host ("   1) {0} {1}{2}" -f (Mark 'Setup'),     (tr 'Preparar entorno (carpetas, modulo, dependencias)' 'Prepare environment (folders, module, dependencies)'), (Tag 'Setup'))     -ForegroundColor Gray
+    Write-Host ("   2) {0} {1}{2}" -f (Mark 'Query'),     (tr 'Generar consulta de export -> ConfigurationFile.ps1' 'Generate export query -> ConfigurationFile.ps1'),   (Tag 'Query'))    -ForegroundColor Gray
+    Write-Host ("   3) {0} {1}{2}" -f (Mark 'Provision'), (tr 'Provisionar App Registration (certificado)' 'Provision App Registration (certificate)'),               (Tag 'Provision')) -ForegroundColor Gray
+    Write-Host ("   4) {0} {1}{2}" -f (Mark 'Export'),    (tr 'Exportar el tenant -> M365TenantConfig.ps1' 'Export the tenant -> M365TenantConfig.ps1'),               (Tag 'Export'))    -ForegroundColor Gray
+    Write-Host ("   5) [  ] {0}" -f (tr 'Eliminar App Registration (limpieza tras exportar)' 'Delete App Registration (cleanup after export)')) -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  PROCESO 2 - REPORTE COMPARATIVO ENTRE TENANTS" -ForegroundColor White
-    Write-Host ("   6) {0} Verificar los M365TenantConfig.ps1 en Tenants\{1}" -f (Mark 'Tenants'),      (Tag 'Tenants'))   -ForegroundColor Gray
-    Write-Host ("   7) {0} Generar el reporte HTML de baseline{1}" -f (Mark 'Report'),                   (Tag 'Report'))    -ForegroundColor Gray
+    Write-Host (tr "  PROCESO 2 - REPORTE COMPARATIVO ENTRE TENANTS" "  PROCESS 2 - COMPARATIVE REPORT ACROSS TENANTS") -ForegroundColor White
+    Write-Host ("   6) {0} {1}{2}" -f (Mark 'Tenants'), (tr 'Verificar los M365TenantConfig.ps1 en Tenants\' 'Verify the M365TenantConfig.ps1 files in Tenants\'), (Tag 'Tenants'))   -ForegroundColor Gray
+    Write-Host ("   7) {0} {1}{2}" -f (Mark 'Report'),  (tr 'Generar el reporte HTML de baseline' 'Generate the HTML baseline report'),                     (Tag 'Report'))    -ForegroundColor Gray
     Write-Host ""
-    Write-Host "   Q) Salir" -ForegroundColor Gray
+    Write-Host ("   Q) {0}" -f (tr 'Salir' 'Quit')) -ForegroundColor Gray
     Write-Host ""
     Write-Host ("-" * 68) -ForegroundColor DarkGray
     if ($next) {
-        $labels = @{
-            Setup='Preparar el entorno'; Query='Generar la consulta de export';
-            Provision='Provisionar la App Registration'; Export='Exportar el tenant';
-            Tenants='Colocar las configuraciones de los tenants'; Report='Generar el reporte'
+        $labels = if ($script:Lang -eq 'EN') {
+            @{ Setup='Prepare the environment'; Query='Generate the export query';
+               Provision='Provision the App Registration'; Export='Export the tenant';
+               Tenants='Place the tenant configurations'; Report='Generate the report' }
+        } else {
+            @{ Setup='Preparar el entorno'; Query='Generar la consulta de export';
+               Provision='Provisionar la App Registration'; Export='Exportar el tenant';
+               Tenants='Colocar las configuraciones de los tenants'; Report='Generar el reporte' }
         }
-        Write-Host ("  Sugerencia: {0}." -f $labels[$next]) -ForegroundColor Yellow
+        Write-Host ("  {0}: {1}." -f (tr 'Sugerencia' 'Suggestion'), $labels[$next]) -ForegroundColor Yellow
     } else {
-        Write-Host "  Todos los pasos completados. Puedes regenerar el reporte (7)." -ForegroundColor Green
+        Write-Host (tr "  Todos los pasos completados. Puedes regenerar el reporte (7)." "  All steps completed. You can regenerate the report (7).") -ForegroundColor Green
     }
     Write-Host ""
 }
@@ -3556,7 +3590,7 @@ function Start-MenuLoop {
         $state = Get-State
         Show-Menu -State $state
 
-        $choice = (Read-Host "  Elige una opcion").Trim().ToUpper()
+        $choice = (Read-Host (tr "  Elige una opcion" "  Choose an option")).Trim().ToUpper()
         switch ($choice) {
             '1' { Invoke-ChildStep 'Setup' }
             '2' { Invoke-QueryStep }
@@ -3565,14 +3599,14 @@ function Start-MenuLoop {
             '5' { Invoke-ChildStep 'Remove' }
             '6' { Invoke-VerifyTenantsStep }
             '7' { Invoke-ChildStep 'Report' }
-            'Q' { Write-Host "  Hasta luego." -ForegroundColor Cyan; return }
+            'Q' { Write-Host (tr "  Hasta luego." "  Goodbye.") -ForegroundColor Cyan; return }
             ''  { }
-            default { Write-Warn "Opcion no valida: $choice" }
+            default { Write-Warn (tr "Opcion no valida: $choice" "Invalid option: $choice") }
         }
 
         if ($choice -ne 'Q') {
             Write-Host ""
-            Read-Host "  Presiona Enter para volver al menu" | Out-Null
+            Read-Host (tr "  Presiona Enter para volver al menu" "  Press Enter to return to the menu") | Out-Null
         }
     }
 }
@@ -3587,5 +3621,9 @@ switch ($Step) {
     'Export'    { Invoke-ExportStep }
     'Report'    { Invoke-ReportStep }
     'Remove'    { Invoke-RemoveStep }
-    default     { Start-MenuLoop }
+    default     {
+        # Modo menu: preguntar idioma si no se indico por parametro
+        if (-not $Lang) { $script:Lang = Select-Language }
+        Start-MenuLoop
+    }
 }
