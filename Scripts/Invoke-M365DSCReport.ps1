@@ -497,7 +497,8 @@ if (-not (Test-Path $OutDir)) {
     } else { Write-Err "Abortando."; return }
 }
 
-$SplitSPO = Read-YesNo " Generar script SPO aparte (evita el conflicto de assemblies)?" $true
+# El export unificado (paso 4) aisla SharePoint en un proceso hijo por si mismo,
+# por lo que el script principal incluye TODOS los componentes (SPO incluido).
 
 
 # ============================================================
@@ -854,12 +855,6 @@ if ($AssignDirRoles) {
 $tenantDomain = (Get-MgOrganization).VerifiedDomains |
                 Where-Object { $_.IsInitial } | Select-Object -ExpandProperty Name
 
-$spoUrl = $null
-if ($activeWorkloads -contains 'SharePoint') {
-    $prefix = $tenantDomain -replace '\.onmicrosoft\.com$',''
-    $spoUrl = Read-WithDefault " URL de admin de SharePoint" "https://$prefix-admin.sharepoint.com"
-}
-
 Write-Host "`n"
 Write-Host ("=" * 66) -ForegroundColor Cyan
 Write-Host " DATOS DE CONEXION" -ForegroundColor Cyan
@@ -870,10 +865,9 @@ Write-Host " CertificateThumbprint: $($cert.Thumbprint)"
 Write-Host " Certificado expira   : $($cert.NotAfter.ToString('yyyy-MM-dd'))"
 Write-Host ("=" * 66) -ForegroundColor Cyan
 
-# Separar componentes SPO del resto
-$spoComponents  = @($Components | Where-Object { $_ -match '^(SPO|ODSettings)' })
-$mainComponents = if ($SplitSPO) { @($Components | Where-Object { $_ -notmatch '^(SPO|ODSettings)' }) }
-                  else           { $Components }
+# El script principal incluye todos los componentes (SPO incluido); el paso 4
+# se encarga de ejecutar SharePoint en un proceso aislado.
+$mainComponents = $Components
 
 function New-ExportScript {
     param(
@@ -910,23 +904,12 @@ New-ExportScript -FilePath $mainFile -Comps $mainComponents -Path $ExportPath `
     -Header "# Ejecutar en una sesion de PowerShell limpia."
 Write-Ok "Script principal: $mainFile  ($($mainComponents.Count) componentes)"
 
-if ($SplitSPO -and $spoComponents.Count -gt 0) {
-    $spoFile = Join-Path $OutDir "M365DSC-Export-SPO.ps1"
-    New-ExportScript -FilePath $spoFile -Comps $spoComponents -Path (Join-Path $ExportPath "SPO") `
-        -Url $spoUrl `
-        -Header "# IMPORTANTE: ejecutar en una sesion NUEVA de PowerShell, sin haber`n# importado Az ni Microsoft.Graph. Evita el conflicto de assemblies`n# de System.Text.Encodings.Web con PnP.PowerShell."
-    Write-Ok "Script SharePoint: $spoFile  ($($spoComponents.Count) componentes)"
-}
-
 Disconnect-MgGraph | Out-Null
 
 Write-Host "`n" -NoNewline
 Write-Host "PROXIMOS PASOS" -ForegroundColor Yellow
 Write-Host "  1. Espera 10-15 minutos a que propaguen los permisos." -ForegroundColor Yellow
-Write-Host "  2. Ejecuta $((Split-Path $mainFile -Leaf)) en una sesion limpia." -ForegroundColor Yellow
-if ($SplitSPO -and $spoComponents.Count -gt 0) {
-    Write-Host "  3. Ejecuta M365DSC-Export-SPO.ps1 en OTRA sesion nueva." -ForegroundColor Yellow
-}
+Write-Host "  2. Ejecuta el paso 4 (Export) apuntando a $((Split-Path $mainFile -Leaf))." -ForegroundColor Yellow
 if ($pfxPath) {
     Write-Host "  *  Para otra maquina: importa el .pfx con" -ForegroundColor Yellow
     Write-Host "     Import-PfxCertificate -FilePath '$pfxPath' -CertStoreLocation Cert:\CurrentUser\My" -ForegroundColor Yellow
@@ -1014,8 +997,10 @@ if (-not $ConfigFile -and -not $AppId) {
     $src = Read-WithDefault " Selecciona" "1"
 
     if ($src -eq '1') {
+        # Lo normal es el script generado por el paso 3 (Provisionar App):
+        $defaultCfg = Join-Path $Root 'Export\M365DSC-Export-Main.ps1'
         do {
-            $ConfigFile = (Read-Host " Ruta del script de export").Trim('"').Trim()
+            $ConfigFile = (Read-WithDefault " Ruta del script de export" $defaultCfg).Trim('"').Trim()
             if (-not (Test-Path $ConfigFile)) { Write-Err "No existe: $ConfigFile" }
         } until (Test-Path $ConfigFile)
     }
