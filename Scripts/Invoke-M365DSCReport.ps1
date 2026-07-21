@@ -986,11 +986,11 @@ function Read-YesNo {
 
 # Recursos que iteran sitio por sitio: coste O(n) sobre el numero de sitios
 $SPOPerSiteComponents = @{
-    'SPOSite'              = 'Recorre TODOS los sitios del tenant'
-    'SPOSiteAuditSettings' = 'Abre cada sitio para leer su configuracion de auditoria'
-    'SPOSiteGroup'         = 'Enumera los grupos de CADA sitio'
-    'SPOPropertyBag'       = 'Lee el property bag de CADA sitio'
-    'SPOUserProfileProperty' = 'Recorre el perfil de CADA usuario del tenant'
+    'SPOSite'              = (tr 'Recorre TODOS los sitios del tenant' 'Iterates over ALL tenant sites')
+    'SPOSiteAuditSettings' = (tr 'Abre cada sitio para leer su configuracion de auditoria' 'Opens each site to read its audit settings')
+    'SPOSiteGroup'         = (tr 'Enumera los grupos de CADA sitio' 'Enumerates the groups of EACH site')
+    'SPOPropertyBag'       = (tr 'Lee el property bag de CADA sitio' 'Reads the property bag of EACH site')
+    'SPOUserProfileProperty' = (tr 'Recorre el perfil de CADA usuario del tenant' 'Iterates over EACH tenant user profile')
 }
 
 # Recursos SPO a nivel de tenant: rapidos, una sola llamada
@@ -1014,28 +1014,28 @@ function Test-IsSPOComponent {
 # ============================================================
 Clear-Host
 Write-Host ("=" * 68) -ForegroundColor Cyan
-Write-Host " EXPORT UNIFICADO MICROSOFT365DSC" -ForegroundColor Cyan
+Write-Host (tr " EXPORT UNIFICADO MICROSOFT365DSC" " UNIFIED MICROSOFT365DSC EXPORT") -ForegroundColor Cyan
 Write-Host ("=" * 68) -ForegroundColor Cyan
 
 # --- Origen de los parametros ---
 if (-not $ConfigFile -and -not $AppId) {
-    Write-Step "Origen de la configuracion"
-    Write-Host "   1) Leer de un script de export generado (.ps1)" -ForegroundColor Gray
-    Write-Host "   2) Introducir los datos manualmente" -ForegroundColor Gray
-    $src = Read-WithDefault " Selecciona" "1"
+    Write-Step (tr "Origen de la configuracion" "Configuration source")
+    Write-Host (tr "   1) Leer de un script de export generado (.ps1)" "   1) Read from a generated export script (.ps1)") -ForegroundColor Gray
+    Write-Host (tr "   2) Introducir los datos manualmente" "   2) Enter the data manually") -ForegroundColor Gray
+    $src = Read-WithDefault (tr " Selecciona" " Select") "1"
 
     if ($src -eq '1') {
         # Lo normal es el script generado por el paso 3 (Provisionar App):
         $defaultCfg = Join-Path $Root 'Export\M365DSC-Export-Main.ps1'
         do {
-            $ConfigFile = (Read-WithDefault " Ruta del script de export" $defaultCfg).Trim('"').Trim()
-            if (-not (Test-Path $ConfigFile)) { Write-Err "No existe: $ConfigFile" }
+            $ConfigFile = (Read-WithDefault (tr " Ruta del script de export" " Path to the export script") $defaultCfg).Trim('"').Trim()
+            if (-not (Test-Path $ConfigFile)) { Write-Err (tr "No existe: $ConfigFile" "Does not exist: $ConfigFile") }
         } until (Test-Path $ConfigFile)
     }
 }
 
 if ($ConfigFile) {
-    Write-Step "Leyendo parametros de $(Split-Path $ConfigFile -Leaf)"
+    Write-Step (tr "Leyendo parametros de $(Split-Path $ConfigFile -Leaf)" "Reading parameters from $(Split-Path $ConfigFile -Leaf)")
     $raw = Get-Content $ConfigFile -Raw
 
     if (-not $AppId      -and $raw -match '\$AppId\s*=\s*"([^"]+)"')      { $AppId      = $Matches[1] }
@@ -1052,16 +1052,16 @@ if ($ConfigFile) {
     Write-Ok "AppId      : $AppId"
     Write-Ok "TenantId   : $TenantId"
     Write-Ok "Thumbprint : $Thumbprint"
-    Write-Ok "Componentes: $($Components.Count)"
+    Write-Ok (tr "Componentes: $($Components.Count)" "Components : $($Components.Count)")
 }
 
 if (-not $AppId)      { $AppId      = (Read-Host " ApplicationId").Trim() }
-if (-not $TenantId)   { $TenantId   = (Read-Host " TenantId (dominio)").Trim() }
+if (-not $TenantId)   { $TenantId   = (Read-Host (tr " TenantId (dominio)" " TenantId (domain)")).Trim() }
 if (-not $Thumbprint) { $Thumbprint = (Read-Host " CertificateThumbprint").Trim().Replace(' ','').ToUpper() }
 
 if (-not $Components -or $Components.Count -eq 0) {
-    Write-Step "Componentes"
-    Write-Host " Pega la lista. Escribe FIN para terminar:" -ForegroundColor Gray
+    Write-Step (tr "Componentes" "Components")
+    Write-Host (tr " Pega la lista. Escribe FIN para terminar:" " Paste the list. Type FIN to finish:") -ForegroundColor Gray
     $buffer = @()
     while ($true) {
         $line = Read-Host
@@ -1079,10 +1079,10 @@ if (-not $Components -or $Components.Count -eq 0) {
 }
 
 $Components = @($Components | Select-Object -Unique)
-if ($Components.Count -eq 0) { Write-Err "Sin componentes. Abortando."; return }
+if ($Components.Count -eq 0) { Write-Err (tr "Sin componentes. Abortando." "No components. Aborting."); return }
 
 if (-not $OutputPath) {
-    $OutputPath = Read-WithDefault " Carpeta de salida" "C:\Microsoft365DSC\Export"
+    $OutputPath = Read-WithDefault (tr " Carpeta de salida" " Output folder") "C:\Microsoft365DSC\Export"
 }
 
 
@@ -1098,11 +1098,11 @@ $spoLight = @($spoAll | Where-Object { -not $SPOPerSiteComponents.ContainsKey($_
 if ($spoHeavy.Count -gt 0 -and -not $Force) {
     Write-Host ""
     Write-Host ("!" * 68) -ForegroundColor Yellow
-    Write-Host " ADVERTENCIA: COMPONENTES DE ALTO COSTE DETECTADOS" -ForegroundColor Yellow
+    Write-Host (tr " ADVERTENCIA: COMPONENTES DE ALTO COSTE DETECTADOS" " WARNING: HIGH-COST COMPONENTS DETECTED") -ForegroundColor Yellow
     Write-Host ("!" * 68) -ForegroundColor Yellow
     Write-Host ""
-    Write-Host " Los siguientes recursos NO consultan una API de tenant: recorren" -ForegroundColor Yellow
-    Write-Host " objeto por objeto y abren una conexion por cada uno." -ForegroundColor Yellow
+    Write-Host (tr " Los siguientes recursos NO consultan una API de tenant: recorren" " The following resources do NOT query a tenant API: they iterate") -ForegroundColor Yellow
+    Write-Host (tr " objeto por objeto y abren una conexion por cada uno." " object by object and open a connection for each one.") -ForegroundColor Yellow
     Write-Host ""
 
     foreach ($h in $spoHeavy) {
@@ -1110,28 +1110,28 @@ if ($spoHeavy.Count -gt 0 -and -not $Force) {
     }
 
     Write-Host ""
-    Write-Host " Tiempo aproximado (referencia real, varia mucho por tenant):" -ForegroundColor Gray
-    Write-Host "     50 sitios    ->  5-15 minutos" -ForegroundColor Gray
-    Write-Host "    200 sitios    -> 20-60 minutos" -ForegroundColor Gray
-    Write-Host "   1000 sitios    ->  3-8 horas" -ForegroundColor Gray
-    Write-Host "   5000+ sitios   -> puede no terminar en un dia" -ForegroundColor Gray
+    Write-Host (tr " Tiempo aproximado (referencia real, varia mucho por tenant):" " Approximate time (real reference, varies a lot per tenant):") -ForegroundColor Gray
+    Write-Host (tr "     50 sitios    ->  5-15 minutos" "     50 sites     ->  5-15 minutes") -ForegroundColor Gray
+    Write-Host (tr "    200 sitios    -> 20-60 minutos" "    200 sites     -> 20-60 minutes") -ForegroundColor Gray
+    Write-Host (tr "   1000 sitios    ->  3-8 horas" "   1000 sites     ->  3-8 hours") -ForegroundColor Gray
+    Write-Host (tr "   5000+ sitios   -> puede no terminar en un dia" "   5000+ sites    -> may not finish in a day") -ForegroundColor Gray
     Write-Host ""
-    Write-Host " Ademas, SPOUserProfileProperty recorre CADA usuario, no cada sitio." -ForegroundColor Gray
+    Write-Host (tr " Ademas, SPOUserProfileProperty recorre CADA usuario, no cada sitio." " Also, SPOUserProfileProperty iterates over EACH user, not each site.") -ForegroundColor Gray
     Write-Host ""
 
-    Write-Host " Opciones:" -ForegroundColor Cyan
-    Write-Host "   1) Excluirlos (recomendado para un primer export)" -ForegroundColor Gray
-    Write-Host "   2) Incluirlos todos" -ForegroundColor Gray
-    Write-Host "   3) Elegir uno a uno" -ForegroundColor Gray
+    Write-Host (tr " Opciones:" " Options:") -ForegroundColor Cyan
+    Write-Host (tr "   1) Excluirlos (recomendado para un primer export)" "   1) Exclude them (recommended for a first export)") -ForegroundColor Gray
+    Write-Host (tr "   2) Incluirlos todos" "   2) Include them all") -ForegroundColor Gray
+    Write-Host (tr "   3) Elegir uno a uno" "   3) Choose one by one") -ForegroundColor Gray
 
-    $opt = Read-WithDefault " Selecciona" "1"
+    $opt = Read-WithDefault (tr " Selecciona" " Select") "1"
 
     switch ($opt) {
         '2' {
-            Write-Warn "Se incluiran los $($spoHeavy.Count) componentes de alto coste."
-            if (-not (Read-YesNo " Confirmas? Esto puede tardar horas" $false)) {
+            Write-Warn (tr "Se incluiran los $($spoHeavy.Count) componentes de alto coste." "The $($spoHeavy.Count) high-cost components will be included.")
+            if (-not (Read-YesNo (tr " Confirmas? Esto puede tardar horas" " Confirm? This may take hours") $false)) {
                 $spoHeavy = @()
-                Write-Ok "Excluidos"
+                Write-Ok (tr "Excluidos" "Excluded")
             }
         }
         '3' {
@@ -1140,14 +1140,14 @@ if ($spoHeavy.Count -gt 0 -and -not $Force) {
                 Write-Host ""
                 Write-Host "   $h" -ForegroundColor White
                 Write-Host "   $($SPOPerSiteComponents[$h])" -ForegroundColor DarkGray
-                if (Read-YesNo "   Incluir?" $false) { $keep += $h }
+                if (Read-YesNo (tr "   Incluir?" "   Include?") $false) { $keep += $h }
             }
             $spoHeavy = $keep
-            Write-Ok "Se incluiran $($spoHeavy.Count) de alto coste"
+            Write-Ok (tr "Se incluiran $($spoHeavy.Count) de alto coste" "$($spoHeavy.Count) high-cost ones will be included")
         }
         default {
             $spoHeavy = @()
-            Write-Ok "Componentes de alto coste excluidos"
+            Write-Ok (tr "Componentes de alto coste excluidos" "High-cost components excluded")
         }
     }
 }
@@ -1156,25 +1156,25 @@ $spoComp = @($spoLight + $spoHeavy) | Select-Object -Unique
 
 if ($spoComp.Count -gt 0 -and -not $SPOUrl) {
     $prefix = $TenantId -replace '\.onmicrosoft\.com$',''
-    $SPOUrl = Read-WithDefault " URL de admin de SharePoint" "https://$prefix-admin.sharepoint.com"
+    $SPOUrl = Read-WithDefault (tr " URL de admin de SharePoint" " SharePoint admin URL") "https://$prefix-admin.sharepoint.com"
 }
 
 
 # ============================================================
 #  RESUMEN
 # ============================================================
-Write-Step "Plan de ejecucion"
-Write-Host "  Fase 1 (sesion actual)  : $($mainComp.Count) componentes generales"
+Write-Step (tr "Plan de ejecucion" "Execution plan")
+Write-Host (tr "  Fase 1 (sesion actual)  : $($mainComp.Count) componentes generales" "  Phase 1 (current session): $($mainComp.Count) general components")
 if ($spoComp.Count -gt 0) {
-    Write-Host "  Fase 2 (proceso hijo)   : $($spoComp.Count) componentes SharePoint"
-    Write-Host "                            $($spoLight.Count) de tenant + $($spoHeavy.Count) por sitio"
+    Write-Host (tr "  Fase 2 (proceso hijo)   : $($spoComp.Count) componentes SharePoint" "  Phase 2 (child process)  : $($spoComp.Count) SharePoint components")
+    Write-Host (tr "                            $($spoLight.Count) de tenant + $($spoHeavy.Count) por sitio" "                             $($spoLight.Count) tenant-level + $($spoHeavy.Count) per-site")
 } else {
-    Write-Host "  Fase 2                  : omitida (sin componentes SPO)"
+    Write-Host (tr "  Fase 2                  : omitida (sin componentes SPO)" "  Phase 2                  : skipped (no SPO components)")
 }
-Write-Host "  Salida                  : $OutputPath\M365TenantConfig.ps1"
+Write-Host (tr "  Salida                  : $OutputPath\M365TenantConfig.ps1" "  Output                   : $OutputPath\M365TenantConfig.ps1")
 
 if (-not $Force) {
-    if (-not (Read-YesNo "`n Iniciar?" $true)) { Write-Warn "Cancelado."; return }
+    if (-not (Read-YesNo (tr "`n Iniciar?" "`n Start?") $true)) { Write-Warn (tr "Cancelado." "Cancelled."); return }
 }
 
 if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null }
@@ -1193,7 +1193,7 @@ $mainOut = Join-Path $workDir "main"
 $mainFile = $null
 
 if ($mainComp.Count -gt 0) {
-    Write-Step "Fase 1: componentes generales ($($mainComp.Count))"
+    Write-Step (tr "Fase 1: componentes generales ($($mainComp.Count))" "Phase 1: general components ($($mainComp.Count))")
 
     $t1 = [System.Diagnostics.Stopwatch]::StartNew()
     New-Item -ItemType Directory -Path $mainOut -Force | Out-Null
@@ -1213,13 +1213,13 @@ if ($mainComp.Count -gt 0) {
 
         $t1.Stop()
         if ($mainFile) {
-            Write-Ok "Completada en $([math]::Round($t1.Elapsed.TotalMinutes,1)) min"
+            Write-Ok (tr "Completada en $([math]::Round($t1.Elapsed.TotalMinutes,1)) min" "Completed in $([math]::Round($t1.Elapsed.TotalMinutes,1)) min")
         } else {
-            Write-Warn "No se genero fichero en la fase 1"
+            Write-Warn (tr "No se genero fichero en la fase 1" "No file was generated in phase 1")
         }
     } catch {
         $t1.Stop()
-        Write-Err "Fallo en la fase 1: $($_.Exception.Message)"
+        Write-Err (tr "Fallo en la fase 1: $($_.Exception.Message)" "Phase 1 failed: $($_.Exception.Message)")
     }
 }
 
@@ -1231,11 +1231,11 @@ $spoOut  = Join-Path $workDir "spo"
 $spoFile = $null
 
 if ($spoComp.Count -gt 0) {
-    Write-Step "Fase 2: SharePoint en proceso aislado ($($spoComp.Count))"
-    Write-Host "  Se lanza un PowerShell hijo sin Graph/Az cargados." -ForegroundColor Gray
+    Write-Step (tr "Fase 2: SharePoint en proceso aislado ($($spoComp.Count))" "Phase 2: SharePoint in an isolated process ($($spoComp.Count))")
+    Write-Host (tr "  Se lanza un PowerShell hijo sin Graph/Az cargados." "  A child PowerShell is launched without Graph/Az loaded.") -ForegroundColor Gray
 
     if ($spoHeavy.Count -gt 0) {
-        Write-Warn "Incluye componentes por sitio. Puede tardar mucho."
+        Write-Warn (tr "Incluye componentes por sitio. Puede tardar mucho." "Includes per-site components. It may take a long time.")
     }
 
     $t2 = [System.Diagnostics.Stopwatch]::StartNew()
@@ -1251,7 +1251,7 @@ if ($spoComp.Count -gt 0) {
 try {
     Import-Module Microsoft365DSC -ErrorAction Stop
 } catch {
-    Write-Error "No se pudo cargar Microsoft365DSC: `$(`$_.Exception.Message)"
+    Write-Error "$(tr 'No se pudo cargar Microsoft365DSC' 'Could not load Microsoft365DSC'): `$(`$_.Exception.Message)"
     exit 1
 }
 
@@ -1268,7 +1268,7 @@ try {
         -Path                  "$spoOut"
     exit 0
 } catch {
-    Write-Error "Export SPO fallo: `$(`$_.Exception.Message)"
+    Write-Error "$(tr 'Export SPO fallo' 'SPO export failed'): `$(`$_.Exception.Message)"
     exit 2
 }
 "@ | Out-File -FilePath $childScript -Encoding UTF8
@@ -1285,15 +1285,15 @@ try {
         $spoFile = Get-ChildItem $spoOut -Filter "*.ps1" -Recurse -ErrorAction SilentlyContinue |
                    Select-Object -First 1 -ExpandProperty FullName
         if ($spoFile) {
-            Write-Ok "Completada en $([math]::Round($t2.Elapsed.TotalMinutes,1)) min"
+            Write-Ok (tr "Completada en $([math]::Round($t2.Elapsed.TotalMinutes,1)) min" "Completed in $([math]::Round($t2.Elapsed.TotalMinutes,1)) min")
         } else {
-            Write-Warn "El proceso termino bien pero no genero fichero"
+            Write-Warn (tr "El proceso termino bien pero no genero fichero" "The process finished fine but generated no file")
         }
     } else {
-        Write-Warn "El proceso hijo termino con codigo $($proc.ExitCode)"
+        Write-Warn (tr "El proceso hijo termino con codigo $($proc.ExitCode)" "The child process exited with code $($proc.ExitCode)")
         $spoFile = Get-ChildItem $spoOut -Filter "*.ps1" -Recurse -ErrorAction SilentlyContinue |
                    Select-Object -First 1 -ExpandProperty FullName
-        if ($spoFile) { Write-Warn "Se encontro un fichero parcial, se fusionara igualmente" }
+        if ($spoFile) { Write-Warn (tr "Se encontro un fichero parcial, se fusionara igualmente" "A partial file was found; it will be merged anyway") }
     }
 }
 
@@ -1301,7 +1301,7 @@ try {
 # ============================================================
 #  FUSION
 # ============================================================
-Write-Step "Fusionando resultados"
+Write-Step (tr "Fusionando resultados" "Merging results")
 
 function Get-ConfigBlocks {
     <#  Extrae el cuerpo de bloques de recurso de un M365TenantConfig.ps1,
@@ -1348,11 +1348,11 @@ function Get-ConfigBlocks {
 $mainBlocks = @(Get-ConfigBlocks -Path $mainFile)
 $spoBlocks  = @(Get-ConfigBlocks -Path $spoFile)
 
-Write-Ok "Bloques fase 1: $($mainBlocks.Count)"
-Write-Ok "Bloques fase 2: $($spoBlocks.Count)"
+Write-Ok (tr "Bloques fase 1: $($mainBlocks.Count)" "Phase 1 blocks: $($mainBlocks.Count)")
+Write-Ok (tr "Bloques fase 2: $($spoBlocks.Count)" "Phase 2 blocks: $($spoBlocks.Count)")
 
 if ($mainBlocks.Count -eq 0 -and $spoBlocks.Count -eq 0) {
-    Write-Err "No se extrajo ningun bloque. Revisa los ficheros en $workDir"
+    Write-Err (tr "No se extrajo ningun bloque. Revisa los ficheros en $workDir" "No block was extracted. Check the files in $workDir")
     return
 }
 
@@ -1404,19 +1404,19 @@ $sizeKb = [math]::Round((Get-Item $finalFile).Length / 1KB, 1)
 
 Write-Host ""
 Write-Host ("=" * 68) -ForegroundColor Green
-Write-Host " EXPORT COMPLETADO" -ForegroundColor Green
+Write-Host (tr " EXPORT COMPLETADO" " EXPORT COMPLETED") -ForegroundColor Green
 Write-Host ("=" * 68) -ForegroundColor Green
-Write-Host " Fichero    : $finalFile"
-Write-Host " Tamano     : $sizeKb KB"
-Write-Host " Recursos   : $($allBlocks.Count) bloques"
-Write-Host " Duracion   : $([math]::Round($stopwatch.Elapsed.TotalMinutes,1)) minutos"
+Write-Host (tr " Fichero    : $finalFile" " File       : $finalFile")
+Write-Host (tr " Tamano     : $sizeKb KB" " Size       : $sizeKb KB")
+Write-Host (tr " Recursos   : $($allBlocks.Count) bloques" " Resources  : $($allBlocks.Count) blocks")
+Write-Host (tr " Duracion   : $([math]::Round($stopwatch.Elapsed.TotalMinutes,1)) minutos" " Duration   : $([math]::Round($stopwatch.Elapsed.TotalMinutes,1)) minutes")
 Write-Host ("=" * 68) -ForegroundColor Green
 
-if (Read-YesNo "`n Conservar los ficheros intermedios en _parts?" $false) {
-    Write-Ok "Conservados en $workDir"
+if (Read-YesNo (tr "`n Conservar los ficheros intermedios en _parts?" "`n Keep the intermediate files in _parts?") $false) {
+    Write-Ok (tr "Conservados en $workDir" "Kept in $workDir")
 } else {
     Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Ok "Intermedios eliminados"
+    Write-Ok (tr "Intermedios eliminados" "Intermediate files removed")
 }
 }
 
