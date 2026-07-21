@@ -3193,13 +3193,24 @@ if ($appRoleAssigns.Count -gt 0) {
 #  3. OAUTH2 GRANTS (consentimientos delegados, si los hubiera)
 # ============================================================
 if ($sp) {
-    $grants = @(Get-MgOauth2PermissionGrant -Filter "clientId eq '$($sp.Id)'" -All -ErrorAction SilentlyContinue)
+    # Via REST (Invoke-MgGraphRequest) para no depender del modulo
+    # Microsoft.Graph.Identity.SignIns (donde viven los cmdlets Oauth2PermissionGrant).
+    $grants = @()
+    try {
+        $resp = Invoke-MgGraphRequest -Method GET `
+            -Uri "https://graph.microsoft.com/v1.0/servicePrincipals/$($sp.Id)/oauth2PermissionGrants" `
+            -ErrorAction Stop
+        if ($resp.value) { $grants = @($resp.value) }
+    } catch {
+        Write-Warn "No se pudieron consultar los consentimientos delegados: $($_.Exception.Message)"
+    }
     if ($grants.Count -gt 0) {
         Write-Step "Eliminando consentimientos delegados ($($grants.Count))"
         foreach ($grant in $grants) {
             try {
-                Remove-MgOauth2PermissionGrant -OAuth2PermissionGrantId $grant.Id -ErrorAction Stop
-                Write-Ok "Grant $($grant.Id)"
+                Invoke-MgGraphRequest -Method DELETE `
+                    -Uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants/$($grant.id)" -ErrorAction Stop
+                Write-Ok "Grant $($grant.id)"
             } catch {
                 Write-Warn "Fallo: $($_.Exception.Message)"
             }
