@@ -1,0 +1,60 @@
+# ============================================================
+#  M365DSC Report - archivos que NO deben publicarse
+# ============================================================
+
+# --- Certificados: la clave privada (.pfx) JAMAS debe publicarse ---
+*.pfx
+*.cer
+*.key
+
+# --- Salidas generadas y datos de tenants reales ---
+Export/
+Reportes/
+Componentes/
+
+# Cualquier reporte HTML generado son datos reales de clientes (esten donde esten)
+*.html
+
+# Guia interna (el README la reemplaza; menciona datos internos)
+Guia de Uso.docx
+*.docx
+
+# Configuracion local de Claude Code / editores
+.claude/
+
+# Configuraciones exportadas de tenants reales (datos de clientes)
+Tenants/**/M365TenantConfig.ps1
+Tenants/**/*.psd1
+
+# --- Scripts originales, ya integrados en Invoke-M365DSCReport.ps1 ---
+# (Se mantienen en local como referencia. Si prefieres publicarlos tambien,
+#  comenta estas 4 lineas.)
+Scripts/Provision-M365DSCApp.ps1
+Scripts/Invoke-M365DSCUnifiedExport.ps1
+Scripts/New-M365DSCBaselineReport.ps1
+Scripts/Remove-M365DSCApp.ps1
+
+# --- Consulta y personalizacion locales ---
+# El de referencia (ConfigurationFileSample.ps1) SI se publica; el real no.
+Scripts/ConfigurationFile.ps1
+Scripts/branding.json
+Scripts/logo.svg
+Scripts/logo.png
+Scripts/logo.jpg
+Scripts/logo.jpeg
+Scripts/logo.gif
+Scripts/logo.webp
+
+# Logo propio actual (renombralo a Scripts/logo.svg si quieres seguir usandolo en local)
+Scripts/FendariLogoVectorizado.svg
+
+# El ejemplo de branding SI se publica
+!Scripts/branding.example.json
+
+# --- Trabajo temporal del export ---
+**/_parts/
+
+# --- Varios del sistema ---
+~$*
+Thumbs.db
+.DS_Store

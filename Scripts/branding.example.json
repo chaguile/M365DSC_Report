@@ -1,0 +1,6 @@
+{
+  "_comment": "Copia este archivo como 'branding.json' (junto a Invoke-M365DSCReport.ps1) y pon tu propia marca. Todas las claves son opcionales. Si no existe branding.json, el reporte sale sin marca (generico).",
+  "name": "Mi Organizacion",
+  "tagline": "Mi eslogan opcional",
+  "logo": "logo.svg"
+}
