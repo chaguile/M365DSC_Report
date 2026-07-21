@@ -131,11 +131,11 @@ function Invoke-SetupStep {
 
     Clear-Host
     Write-Host ("=" * 66) -ForegroundColor Cyan
-    Write-Host " PREPARACION DEL ENTORNO - MICROSOFT365DSC" -ForegroundColor Cyan
+    Write-Host (tr " PREPARACION DEL ENTORNO - MICROSOFT365DSC" " ENVIRONMENT SETUP - MICROSOFT365DSC") -ForegroundColor Cyan
     Write-Host ("=" * 66) -ForegroundColor Cyan
 
     # --- Carpetas ---
-    Write-Step "Creando la estructura de carpetas"
+    Write-Step (tr "Creando la estructura de carpetas" "Creating the folder structure")
     $folders = @(
         (Join-Path $Root 'Scripts')
         (Join-Path $Root 'Export')
@@ -145,56 +145,56 @@ function Invoke-SetupStep {
         (Join-Path $Root 'Tenants\SnapshotB')
     )
     foreach ($f in $folders) {
-        if (Test-Path $f) { Write-Ok "$f (ya existe)" }
-        else { New-Item -ItemType Directory -Force -Path $f | Out-Null; Write-Ok "$f (creada)" }
+        if (Test-Path $f) { Write-Ok "$f $(tr '(ya existe)' '(already exists)')" }
+        else { New-Item -ItemType Directory -Force -Path $f | Out-Null; Write-Ok "$f $(tr '(creada)' '(created)')" }
     }
 
     # --- Modulo Microsoft365DSC ---
-    Write-Step "Modulo Microsoft365DSC"
+    Write-Step (tr "Modulo Microsoft365DSC" "Microsoft365DSC module")
     $mod = Get-Module -ListAvailable -Name Microsoft365DSC | Sort-Object Version -Descending | Select-Object -First 1
     if ($mod) {
-        Write-Ok "Instalado (version $($mod.Version))"
-        if (Read-YesNo " Comprobar si hay una version mas reciente?" $false) {
+        Write-Ok (tr "Instalado (version $($mod.Version))" "Installed (version $($mod.Version))")
+        if (Read-YesNo (tr " Comprobar si hay una version mas reciente?" " Check for a newer version?") $false) {
             $scope = if (Test-IsAdmin) { 'AllUsers' } else { 'CurrentUser' }
-            try { Install-Module Microsoft365DSC -Force -AllowClobber -Scope $scope; Write-Ok "Actualizado" }
-            catch { Write-Warn "No se pudo actualizar: $($_.Exception.Message)" }
+            try { Install-Module Microsoft365DSC -Force -AllowClobber -Scope $scope; Write-Ok (tr "Actualizado" "Updated") }
+            catch { Write-Warn (tr "No se pudo actualizar: $($_.Exception.Message)" "Could not update: $($_.Exception.Message)") }
         }
     } else {
-        Write-Warn "No esta instalado."
+        Write-Warn (tr "No esta instalado." "Not installed.")
         if (-not (Test-IsAdmin)) {
-            Write-Warn "No estas como Administrador. Se instalara en el ambito CurrentUser."
-            Write-Warn "La guia recomienda -Scope AllUsers (requiere abrir PowerShell como Administrador)."
+            Write-Warn (tr "No estas como Administrador. Se instalara en el ambito CurrentUser." "You are not running as Administrator. It will be installed in CurrentUser scope.")
+            Write-Warn (tr "La guia recomienda -Scope AllUsers (requiere abrir PowerShell como Administrador)." "The guide recommends -Scope AllUsers (requires opening PowerShell as Administrator).")
         }
-        if (Read-YesNo " Instalar Microsoft365DSC ahora?" $true) {
+        if (Read-YesNo (tr " Instalar Microsoft365DSC ahora?" " Install Microsoft365DSC now?") $true) {
             $scope = if (Test-IsAdmin) { 'AllUsers' } else { 'CurrentUser' }
             try {
                 Install-Module Microsoft365DSC -Force -AllowClobber -Scope $scope
-                Write-Ok "Instalado en el ambito $scope"
-            } catch { Write-Err "Fallo la instalacion: $($_.Exception.Message)" }
+                Write-Ok (tr "Instalado en el ambito $scope" "Installed in $scope scope")
+            } catch { Write-Err (tr "Fallo la instalacion: $($_.Exception.Message)" "Installation failed: $($_.Exception.Message)") }
         }
     }
 
     # --- Dependencias ---
     if (Get-Module -ListAvailable -Name Microsoft365DSC) {
-        Write-Step "Dependencias de Microsoft365DSC"
-        Write-Host " Update-M365DSCDependencies alinea las versiones de los submodulos" -ForegroundColor Gray
-        Write-Host " (Graph, Exchange, PnP, etc.). Puede tardar varios minutos." -ForegroundColor Gray
-        if (Read-YesNo " Ejecutar Update-M365DSCDependencies ahora?" $true) {
+        Write-Step (tr "Dependencias de Microsoft365DSC" "Microsoft365DSC dependencies")
+        Write-Host (tr " Update-M365DSCDependencies alinea las versiones de los submodulos" " Update-M365DSCDependencies aligns the submodule versions") -ForegroundColor Gray
+        Write-Host (tr " (Graph, Exchange, PnP, etc.). Puede tardar varios minutos." " (Graph, Exchange, PnP, etc.). It may take several minutes.") -ForegroundColor Gray
+        if (Read-YesNo (tr " Ejecutar Update-M365DSCDependencies ahora?" " Run Update-M365DSCDependencies now?") $true) {
             try {
                 Import-Module Microsoft365DSC -ErrorAction Stop
                 Update-M365DSCDependencies
-                Write-Ok "Dependencias actualizadas"
-            } catch { Write-Warn "Fallo: $($_.Exception.Message)" }
+                Write-Ok (tr "Dependencias actualizadas" "Dependencies updated")
+            } catch { Write-Warn (tr "Fallo: $($_.Exception.Message)" "Failed: $($_.Exception.Message)") }
         }
     }
 
     Write-Host ""
     Write-Host ("=" * 66) -ForegroundColor Green
-    Write-Host " ENTORNO PREPARADO" -ForegroundColor Green
+    Write-Host (tr " ENTORNO PREPARADO" " ENVIRONMENT READY") -ForegroundColor Green
     Write-Host ("=" * 66) -ForegroundColor Green
-    Write-Host " Siguiente: genera la consulta de export en" -ForegroundColor Yellow
+    Write-Host (tr " Siguiente: genera la consulta de export en" " Next: generate the export query at") -ForegroundColor Yellow
     Write-Host "   https://export.microsoft365dsc.com/" -ForegroundColor Yellow
-    Write-Host " y guardala como $((Join-Path $Root 'Scripts\ConfigurationFile.ps1'))" -ForegroundColor Yellow
+    Write-Host (tr " y guardala como $((Join-Path $Root 'Scripts\ConfigurationFile.ps1'))" " and save it as $((Join-Path $Root 'Scripts\ConfigurationFile.ps1'))") -ForegroundColor Yellow
     Write-Host ""
 }
 
@@ -1596,10 +1596,10 @@ function Test-ValueEqual {
 if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     Clear-Host
     Write-Host ("=" * 68) -ForegroundColor Cyan
-    Write-Host " REPORTE DE BASELINE - MICROSOFT365DSC" -ForegroundColor Cyan
+    Write-Host (tr " REPORTE DE BASELINE - MICROSOFT365DSC" " BASELINE REPORT - MICROSOFT365DSC") -ForegroundColor Cyan
     Write-Host ("=" * 68) -ForegroundColor Cyan
 
-    Write-Step "Configuraciones a comparar"
+    Write-Step (tr "Configuraciones a comparar" "Configurations to compare")
 
     $ConfigPaths = @(); $Labels = @()
 
@@ -1612,14 +1612,14 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     }
 
     if ($detected.Count -ge 1) {
-        Write-Host " Configuraciones detectadas en $tenantsDir :" -ForegroundColor Gray
+        Write-Host (tr " Configuraciones detectadas en $tenantsDir :" " Configurations detected in $tenantsDir :") -ForegroundColor Gray
         for ($k = 0; $k -lt $detected.Count; $k++) {
             $kb = [math]::Round($detected[$k].Length / 1KB, 1)
             Write-Host ("   [{0}] {1,-16} {2,8} KB   {3}" -f ($k + 1), $detected[$k].Directory.Name, $kb, $detected[$k].FullName) -ForegroundColor Gray
         }
         Write-Host ""
-        Write-Host " Enter = todas  |  numeros separados por coma (ej. 1,3)  |  M = escribir rutas a mano" -ForegroundColor DarkGray
-        $sel = (Read-Host " Seleccion").Trim()
+        Write-Host (tr " Enter = todas  |  numeros separados por coma (ej. 1,3)  |  M = escribir rutas a mano" " Enter = all  |  numbers separated by comma (e.g. 1,3)  |  M = type paths manually") -ForegroundColor DarkGray
+        $sel = (Read-Host (tr " Seleccion" " Selection")).Trim()
 
         if ($sel.ToUpper() -ne 'M') {
             $picks = @()
@@ -1637,27 +1637,27 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
                 $Labels      += $detected[$idx].Directory.Name
             }
             if ($ConfigPaths.Count -ge 1) {
-                Write-Ok "$($ConfigPaths.Count) seleccionadas: $($Labels -join ', ')"
+                Write-Ok (tr "$($ConfigPaths.Count) seleccionadas: $($Labels -join ', ')" "$($ConfigPaths.Count) selected: $($Labels -join ', ')")
             }
         }
     }
 
     # Modo manual: si no se detecto nada, elegiste M, o faltan configuraciones
     if ($ConfigPaths.Count -lt 2) {
-        if ($detected.Count -eq 0) { Write-Warn "No se detectaron configuraciones en $tenantsDir" }
-        Write-Host " Introduce la ruta de cada M365TenantConfig.ps1 (Enter vacio para terminar, minimo 2)." -ForegroundColor Gray
+        if ($detected.Count -eq 0) { Write-Warn (tr "No se detectaron configuraciones en $tenantsDir" "No configurations detected in $tenantsDir") }
+        Write-Host (tr " Introduce la ruta de cada M365TenantConfig.ps1 (Enter vacio para terminar, minimo 2)." " Enter the path of each M365TenantConfig.ps1 (empty Enter to finish, minimum 2).") -ForegroundColor Gray
         $i = $ConfigPaths.Count + 1
         while ($true) {
             $p = (Read-Host " Config #$i").Trim('"').Trim()
             if ([string]::IsNullOrWhiteSpace($p)) {
                 if ($ConfigPaths.Count -ge 2) { break }
-                Write-Warn "Se necesitan al menos 2"
+                Write-Warn (tr "Se necesitan al menos 2" "At least 2 are needed")
                 continue
             }
-            if (-not (Test-Path $p)) { Write-Err "No existe: $p"; continue }
+            if (-not (Test-Path $p)) { Write-Err (tr "No existe: $p" "Does not exist: $p"); continue }
 
             $defaultLabel = (Get-Item $p).Directory.Name
-            $l = Read-WithDefault "   Etiqueta para esta columna" $defaultLabel
+            $l = Read-WithDefault (tr "   Etiqueta para esta columna" "   Label for this column") $defaultLabel
 
             $ConfigPaths += $p
             $Labels      += $l
@@ -1665,8 +1665,8 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
         }
     }
 
-    Write-Step "Configuracion de referencia (baseline)"
-    Write-Host " Las demas se compararan contra esta." -ForegroundColor Gray
+    Write-Step (tr "Configuracion de referencia (baseline)" "Reference configuration (baseline)")
+    Write-Host (tr " Las demas se compararan contra esta." " The others will be compared against this one.") -ForegroundColor Gray
     for ($k = 0; $k -lt $Labels.Count; $k++) {
         Write-Host ("   [{0}] {1}" -f ($k+1), $Labels[$k]) -ForegroundColor Gray
     }
@@ -1677,26 +1677,26 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
     }
     $BaselineIndex = -1
     while ($BaselineIndex -lt 0 -or $BaselineIndex -ge $Labels.Count) {
-        $v = Read-WithDefault " Cual es la baseline" "$defaultBase"
+        $v = Read-WithDefault (tr " Cual es la baseline" " Which one is the baseline") "$defaultBase"
         $n = 0; [int]::TryParse($v, [ref]$n) | Out-Null
         $BaselineIndex = $n - 1
     }
     Write-Ok "Baseline: $($Labels[$BaselineIndex])"
 
-    Write-Step "Salida"
+    Write-Step (tr "Salida" "Output")
     $defaultOut = if (Test-Path (Join-Path $Root 'Reports')) {
                       Join-Path $Root ("Reports\baseline-{0}.html" -f (Get-Date -Format 'yyyy-MM'))
                   } else {
                       Join-Path $PWD.Path "M365DSC-Baseline.html"
                   }
-    $OutputPath  = Read-WithDefault " Ruta del HTML" $defaultOut
-    $ReportTitle = Read-WithDefault " Titulo del reporte" "Comparacion de baseline Microsoft 365"
-    $ClientName  = Read-WithDefault " Cliente / organizacion (opcional)" ""
+    $OutputPath  = Read-WithDefault (tr " Ruta del HTML" " HTML path") $defaultOut
+    $ReportTitle = Read-WithDefault (tr " Titulo del reporte" " Report title") (tr "Comparacion de baseline Microsoft 365" "Microsoft 365 baseline comparison")
+    $ClientName  = Read-WithDefault (tr " Cliente / organizacion (opcional)" " Client / organization (optional)") ""
 
-    Write-Step "Marca del reporte (opcional)"
-    Write-Host " Deja en blanco cualquier campo para omitirlo." -ForegroundColor Gray
-    $BrandName = Read-WithDefault " Nombre / organizacion (cabecera y pie)" ""
-    $Tagline   = Read-WithDefault " Eslogan" ""
+    Write-Step (tr "Marca del reporte (opcional)" "Report branding (optional)")
+    Write-Host (tr " Deja en blanco cualquier campo para omitirlo." " Leave any field blank to omit it.") -ForegroundColor Gray
+    $BrandName = Read-WithDefault (tr " Nombre / organizacion (cabecera y pie)" " Name / organization (header and footer)") ""
+    $Tagline   = Read-WithDefault (tr " Eslogan" " Tagline") ""
 
     # Se sugiere un logo.* que este junto al script, si existe
     $scriptDirBrand = if ($PSCommandPath) { Split-Path $PSCommandPath -Parent } else { $PWD.Path }
@@ -1705,10 +1705,10 @@ if (-not $ConfigPaths -or $ConfigPaths.Count -eq 0) {
         $t = Join-Path $scriptDirBrand $cand
         if (Test-Path $t) { $logoDefault = $t; break }
     }
-    $LogoPath = (Read-WithDefault " Ruta del logo (SVG/PNG/JPG, vacio = sin logo)" $logoDefault).Trim('"').Trim()
+    $LogoPath = (Read-WithDefault (tr " Ruta del logo (SVG/PNG/JPG, vacio = sin logo)" " Logo path (SVG/PNG/JPG, empty = no logo)") $logoDefault).Trim('"').Trim()
 }
 
-if ([string]::IsNullOrWhiteSpace($ReportTitle)) { $ReportTitle = "Comparacion de baseline Microsoft 365" }
+if ([string]::IsNullOrWhiteSpace($ReportTitle)) { $ReportTitle = tr "Comparacion de baseline Microsoft 365" "Microsoft 365 baseline comparison" }
 
 if (-not $Labels -or $Labels.Count -ne $ConfigPaths.Count) {
     $Labels = 1..$ConfigPaths.Count | ForEach-Object { "Config $_" }
@@ -1738,14 +1738,14 @@ if ($LogoPath -and (Test-Path $LogoPath)) {
         $logoB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($LogoPath))
         $altTxt  = if ($BrandName) { $BrandName } else { 'Logo' }
         $logoTag = "<img class=`"logo`" src=`"data:$mime;base64,$logoB64`" alt=`"$altTxt`">"
-        Write-Ok "Logo embebido desde $LogoPath"
+        Write-Ok (tr "Logo embebido desde $LogoPath" "Logo embedded from $LogoPath")
     } catch {
-        Write-Warn "No se pudo leer el logo: $($_.Exception.Message)"
+        Write-Warn (tr "No se pudo leer el logo: $($_.Exception.Message)" "Could not read the logo: $($_.Exception.Message)")
     }
 } elseif ($LogoPath) {
-    Write-Warn "Logo no encontrado en: $LogoPath (el reporte saldra sin logo)"
+    Write-Warn (tr "Logo no encontrado en: $LogoPath (el reporte saldra sin logo)" "Logo not found at: $LogoPath (the report will have no logo)")
 } else {
-    Write-Ok "Reporte sin logo"
+    Write-Ok (tr "Reporte sin logo" "Report without logo")
 }
 
 
@@ -1776,13 +1776,13 @@ if (Test-Path $CatalogPath) {
             if ($prop.Name -eq '_meta') { continue }
             $script:Catalog[$prop.Name] = $prop.Value
         }
-        Write-Ok "Catalogo cargado: $($script:Catalog.Count) recursos documentados"
+        Write-Ok (tr "Catalogo cargado: $($script:Catalog.Count) recursos documentados" "Catalog loaded: $($script:Catalog.Count) documented resources")
     } catch {
-        Write-Warn "No se pudo leer el catalogo: $($_.Exception.Message)"
+        Write-Warn (tr "No se pudo leer el catalogo: $($_.Exception.Message)" "Could not read the catalog: $($_.Exception.Message)")
     }
 } else {
-    Write-Warn "Catalogo no encontrado en $CatalogPath"
-    Write-Warn "El reporte saldra sin descripciones ni enlaces. Usa -CatalogPath si esta en otra ruta."
+    Write-Warn (tr "Catalogo no encontrado en $CatalogPath" "Catalog not found at $CatalogPath")
+    Write-Warn (tr "El reporte saldra sin descripciones ni enlaces. Usa -CatalogPath si esta en otra ruta." "The report will have no descriptions or links. Use -CatalogPath if it is elsewhere.")
 }
 
 function Get-CatalogEntry {
@@ -1795,13 +1795,13 @@ function Get-CatalogEntry {
 # ============================================================
 #  CARGA DE MODULO
 # ============================================================
-Write-Step "Cargando Microsoft365DSC"
+Write-Step (tr "Cargando Microsoft365DSC" "Loading Microsoft365DSC")
 try {
     Import-Module Microsoft365DSC -ErrorAction Stop
-    Write-Ok "Modulo cargado"
+    Write-Ok (tr "Modulo cargado" "Module loaded")
 } catch {
-    Write-Err "No se pudo cargar Microsoft365DSC: $($_.Exception.Message)"
-    Write-Err "Ejecuta este script en una sesion limpia de PowerShell."
+    Write-Err (tr "No se pudo cargar Microsoft365DSC: $($_.Exception.Message)" "Could not load Microsoft365DSC: $($_.Exception.Message)")
+    Write-Err (tr "Ejecuta este script en una sesion limpia de PowerShell." "Run this script in a clean PowerShell session.")
     return
 }
 
@@ -1809,7 +1809,7 @@ try {
 # ============================================================
 #  PARSEO Y NORMALIZACION
 # ============================================================
-Write-Step "Parseando configuraciones"
+Write-Step (tr "Parseando configuraciones" "Parsing configurations")
 
 $allConfigs = @()
 
@@ -1823,7 +1823,7 @@ for ($c = 0; $c -lt $ConfigPaths.Count; $c++) {
         $objects = ConvertTo-DSCObject -Path $path -ErrorAction Stop
     } catch {
         Write-Host ""
-        Write-Err "Fallo al parsear '$path': $($_.Exception.Message)"
+        Write-Err (tr "Fallo al parsear '$path': $($_.Exception.Message)" "Failed to parse '$path': $($_.Exception.Message)")
         return
     }
 
@@ -1860,21 +1860,21 @@ for ($c = 0; $c -lt $ConfigPaths.Count; $c++) {
     }
 
     $allConfigs += @{ Label = $label; Path = $path; Items = $bucket }
-    Write-Host " $($bucket.Count) instancias" -ForegroundColor Green
-    if ($prefix) { Write-Host "        tenant detectado: $prefix" -ForegroundColor DarkGray }
+    Write-Host " $($bucket.Count) $(tr 'instancias' 'instances')" -ForegroundColor Green
+    if ($prefix) { Write-Host "        $(tr 'tenant detectado' 'tenant detected'): $prefix" -ForegroundColor DarkGray }
 }
 
 
 # ============================================================
 #  COMPARACION
 # ============================================================
-Write-Step "Comparando contra la baseline"
+Write-Step (tr "Comparando contra la baseline" "Comparing against the baseline")
 
 $allKeys = @()
 foreach ($cfg in $allConfigs) { $allKeys += $cfg.Items.Keys }
 $allKeys = @($allKeys | Select-Object -Unique | Sort-Object)
 
-Write-Ok "$($allKeys.Count) instancias unicas en total"
+Write-Ok (tr "$($allKeys.Count) instancias unicas en total" "$($allKeys.Count) unique instances in total")
 
 $report = @{
     Title     = $ReportTitle
@@ -1979,7 +1979,7 @@ foreach ($key in $allKeys) {
     }
 }
 
-Write-Ok ("Iguales: {0} | Difieren: {1} | Parciales: {2} | Solo baseline: {3} | Faltan en baseline: {4}" -f `
+Write-Ok ((tr "Iguales: {0} | Difieren: {1} | Parciales: {2} | Solo baseline: {3} | Faltan en baseline: {4}" "Identical: {0} | Different: {1} | Partial: {2} | Baseline only: {3} | Missing in baseline: {4}") -f `
     $report.Stats.Same, $report.Stats.Diff, $report.Stats.Partial,
     $report.Stats.OnlyBase, $report.Stats.MissingBase)
 
@@ -1987,7 +1987,7 @@ Write-Ok ("Iguales: {0} | Difieren: {1} | Parciales: {2} | Solo baseline: {3} | 
 # ============================================================
 #  SERIALIZACION
 # ============================================================
-Write-Step "Generando HTML"
+Write-Step (tr "Generando HTML" "Generating HTML")
 
 $wlArray = @()
 $propDocs = @{}   # "Recurso.Propiedad" -> { d = descripcion; v = valores validos }
@@ -2036,7 +2036,7 @@ foreach ($wlName in ($report.Workloads.Keys | Sort-Object)) {
     $wlArray += @{ name = $wl.Name; resources = $resArray }
 }
 
-Write-Ok "Recursos con documentacion: $docHits | propiedades documentadas: $($propDocs.Count)"
+Write-Ok (tr "Recursos con documentacion: $docHits | propiedades documentadas: $($propDocs.Count)" "Resources with documentation: $docHits | documented properties: $($propDocs.Count)")
 
 # ============================================================
 #  TEXTOS DE LA INTERFAZ DEL REPORTE (bilingue EN/ES)
@@ -3042,14 +3042,15 @@ if ($outDir -and -not (Test-Path $outDir)) {
 $html | Out-File -FilePath $OutputPath -Encoding UTF8
 
 $sizeMb = [math]::Round((Get-Item $OutputPath).Length / 1MB, 2)
-Write-Ok "Reporte generado: $OutputPath ($sizeMb MB)"
+Write-Ok (tr "Reporte generado: $OutputPath ($sizeMb MB)" "Report generated: $OutputPath ($sizeMb MB)")
 
 if ($sizeMb -gt 25) {
-    Write-Warn "El fichero es grande. El render inicial puede tardar unos segundos."
-    Write-Warn "Considera generar reportes separados por workload."
+    Write-Warn (tr "El fichero es grande. El render inicial puede tardar unos segundos." "The file is large. Initial rendering may take a few seconds.")
+    Write-Warn (tr "Considera generar reportes separados por workload." "Consider generating separate reports per workload.")
 }
 
-if ((Read-WithDefault "`n Abrir en el navegador? (S/N)" "S").ToUpper() -eq 'S') {
+$openYes = if ($script:Lang -eq 'EN') { 'Y' } else { 'S' }
+if ((Read-WithDefault (tr "`n Abrir en el navegador? (S/N)" "`n Open in the browser? (Y/N)") $openYes).ToUpper() -eq $openYes) {
     Start-Process $OutputPath
 }
 }
@@ -3512,63 +3513,63 @@ function Invoke-QueryStep {
     $cfg = Join-Path $Root 'Scripts\ConfigurationFile.ps1'
     Clear-Host
     Write-Host ("=" * 66) -ForegroundColor Cyan
-    Write-Host " GENERAR LA CONSULTA DE EXPORT" -ForegroundColor Cyan
+    Write-Host (tr " GENERAR LA CONSULTA DE EXPORT" " GENERATE THE EXPORT QUERY") -ForegroundColor Cyan
     Write-Host ("=" * 66) -ForegroundColor Cyan
     Write-Host ""
-    Write-Host " 1. Abre el generador de consultas de Microsoft365DSC:" -ForegroundColor Gray
+    Write-Host (tr " 1. Abre el generador de consultas de Microsoft365DSC:" " 1. Open the Microsoft365DSC query generator:") -ForegroundColor Gray
     Write-Host "      https://export.microsoft365dsc.com/" -ForegroundColor White
-    Write-Host " 2. Selecciona los componentes/workloads a exportar." -ForegroundColor Gray
-    Write-Host " 3. Descarga o copia el script y guardalo como:" -ForegroundColor Gray
+    Write-Host (tr " 2. Selecciona los componentes/workloads a exportar." " 2. Select the components/workloads to export.") -ForegroundColor Gray
+    Write-Host (tr " 3. Descarga o copia el script y guardalo como:" " 3. Download or copy the script and save it as:") -ForegroundColor Gray
     Write-Host "      $cfg" -ForegroundColor White
     Write-Host ""
-    Write-Host " Recordatorios:" -ForegroundColor DarkCyan
-    Write-Host "   - Los componentes Fabric no usan certificado y fallaran." -ForegroundColor DarkGray
-    Write-Host "   - Los sitios de SharePoint pueden tardar mucho (excluyelos si" -ForegroundColor DarkGray
-    Write-Host "     no necesitas un export completo del tenant)." -ForegroundColor DarkGray
+    Write-Host (tr " Recordatorios:" " Reminders:") -ForegroundColor DarkCyan
+    Write-Host (tr "   - Los componentes Fabric no usan certificado y fallaran." "   - Fabric components do not use a certificate and will fail.") -ForegroundColor DarkGray
+    Write-Host (tr "   - Los sitios de SharePoint pueden tardar mucho (excluyelos si" "   - SharePoint sites can take a long time (exclude them if") -ForegroundColor DarkGray
+    Write-Host (tr "     no necesitas un export completo del tenant)." "     you don't need a full tenant export).") -ForegroundColor DarkGray
     Write-Host ""
 
-    if (Read-YesNo " Abrir ahora el sitio en el navegador?" $true) {
-        try { Start-Process "https://export.microsoft365dsc.com/" } catch { Write-Warn "No se pudo abrir el navegador." }
+    if (Read-YesNo (tr " Abrir ahora el sitio en el navegador?" " Open the site in the browser now?") $true) {
+        try { Start-Process "https://export.microsoft365dsc.com/" } catch { Write-Warn (tr "No se pudo abrir el navegador." "Could not open the browser.") }
     }
 
     Write-Host ""
-    if (Test-Path $cfg) { Write-Ok "Detectado: $cfg" }
-    else { Write-Warn "Aun no existe $cfg. Guardalo ahi cuando termines." }
+    if (Test-Path $cfg) { Write-Ok (tr "Detectado: $cfg" "Detected: $cfg") }
+    else { Write-Warn (tr "Aun no existe $cfg. Guardalo ahi cuando termines." "$cfg does not exist yet. Save it there when you finish.") }
 }
 
 function Invoke-VerifyTenantsStep {
     $tenants = Join-Path $Root 'Tenants'
     Clear-Host
     Write-Host ("=" * 66) -ForegroundColor Cyan
-    Write-Host " VERIFICAR CONFIGURACIONES DE TENANTS" -ForegroundColor Cyan
+    Write-Host (tr " VERIFICAR CONFIGURACIONES DE TENANTS" " VERIFY TENANT CONFIGURATIONS") -ForegroundColor Cyan
     Write-Host ("=" * 66) -ForegroundColor Cyan
     Write-Host ""
-    Write-Host " Coloca el M365TenantConfig.ps1 de cada tenant en su carpeta:" -ForegroundColor Gray
-    Write-Host "   $tenants\Baseline\M365TenantConfig.ps1     (el tenant mas completo / de referencia)" -ForegroundColor DarkGray
+    Write-Host (tr " Coloca el M365TenantConfig.ps1 de cada tenant en su carpeta:" " Place each tenant's M365TenantConfig.ps1 in its folder:") -ForegroundColor Gray
+    Write-Host "   $tenants\Baseline\M365TenantConfig.ps1     $(tr '(el tenant mas completo / de referencia)' '(the most complete / reference tenant)')" -ForegroundColor DarkGray
     Write-Host "   $tenants\SnapshotA\M365TenantConfig.ps1" -ForegroundColor DarkGray
     Write-Host "   $tenants\SnapshotB\M365TenantConfig.ps1" -ForegroundColor DarkGray
     Write-Host ""
 
     if (-not (Test-Path $tenants)) {
-        Write-Warn "No existe la carpeta $tenants. Ejecuta primero 'Preparar entorno'."
+        Write-Warn (tr "No existe la carpeta $tenants. Ejecuta primero 'Preparar entorno'." "Folder $tenants does not exist. Run 'Prepare environment' first.")
         return
     }
 
     $files = @(Get-ChildItem $tenants -Recurse -Filter 'M365TenantConfig.ps1' -ErrorAction SilentlyContinue)
     if ($files.Count -eq 0) {
-        Write-Warn "No se encontro ningun M365TenantConfig.ps1 todavia."
+        Write-Warn (tr "No se encontro ningun M365TenantConfig.ps1 todavia." "No M365TenantConfig.ps1 found yet.")
         return
     }
 
-    Write-Step "Archivos encontrados"
+    Write-Step (tr "Archivos encontrados" "Files found")
     $files | ForEach-Object {
         $kb = [math]::Round($_.Length / 1KB, 1)
-        $flag = if ($kb -lt 1) { '[!] muy pequeno' } else { '' }
+        $flag = if ($kb -lt 1) { tr '[!] muy pequeno' '[!] very small' } else { '' }
         Write-Host ("    {0,-16} {1,8} KB  {2}" -f $_.Directory.Name, $kb, $flag) -ForegroundColor Gray
     }
     Write-Host ""
-    if ($files.Count -ge 2) { Write-Ok "$($files.Count) configuraciones listas para comparar" }
-    else { Write-Warn "Se necesitan al menos 2 configuraciones para comparar" }
+    if ($files.Count -ge 2) { Write-Ok (tr "$($files.Count) configuraciones listas para comparar" "$($files.Count) configurations ready to compare") }
+    else { Write-Warn (tr "Se necesitan al menos 2 configuraciones para comparar" "At least 2 configurations are needed to compare") }
 }
 
 
