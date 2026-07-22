@@ -3095,28 +3095,28 @@ function Read-YesNo {
 # ============================================================
 Clear-Host
 Write-Host ("=" * 66) -ForegroundColor Red
-Write-Host " DESMANTELAR APP REGISTRATION DE MICROSOFT365DSC" -ForegroundColor Red
+Write-Host (tr " DESMANTELAR APP REGISTRATION DE MICROSOFT365DSC" " DISMANTLE MICROSOFT365DSC APP REGISTRATION") -ForegroundColor Red
 Write-Host ("=" * 66) -ForegroundColor Red
 
-Write-Step "Identificar la aplicacion"
-Write-Host "   1) Por nombre" -ForegroundColor Gray
-Write-Host "   2) Por Application (client) ID" -ForegroundColor Gray
-$modo = Read-WithDefault " Selecciona" "1"
+Write-Step (tr "Identificar la aplicacion" "Identify the application")
+Write-Host (tr "   1) Por nombre" "   1) By name") -ForegroundColor Gray
+Write-Host (tr "   2) Por Application (client) ID" "   2) By Application (client) ID") -ForegroundColor Gray
+$modo = Read-WithDefault (tr " Selecciona" " Select") "1"
 
 $AppDisplayName = $null; $AppIdInput = $null
 if ($modo -eq '2') {
     $AppIdInput = (Read-Host " Application ID").Trim()
 } else {
-    $AppDisplayName = Read-WithDefault " Nombre de la aplicacion" "M365DSC-Export"
+    $AppDisplayName = Read-WithDefault (tr " Nombre de la aplicacion" " Application name") "M365DSC-Export"
 }
 
-$TenantHint = (Read-Host " TenantId o dominio (opcional, vacio = el del usuario)").Trim()
+$TenantHint = (Read-Host (tr " TenantId o dominio (opcional, vacio = el del usuario)" " TenantId or domain (optional, empty = the user's)")).Trim()
 
 
 # ============================================================
 #  MODULOS
 # ============================================================
-Write-Step "Preparando modulos de Microsoft Graph"
+Write-Step (tr "Preparando modulos de Microsoft Graph" "Preparing Microsoft Graph modules")
 
 $graphModules = @(
     'Microsoft.Graph.Authentication'
@@ -3126,7 +3126,7 @@ $graphModules = @(
 
 foreach ($m in $graphModules) {
     if (-not (Get-Module -ListAvailable -Name $m)) {
-        Write-Warn "Instalando $m ..."
+        Write-Warn (tr "Instalando $m ..." "Installing $m ...")
         Install-Module $m -Scope CurrentUser -Force -AllowClobber
     }
 }
@@ -3154,16 +3154,16 @@ Get-Module Microsoft.Graph* | Remove-Module -Force -ErrorAction SilentlyContinue
 foreach ($m in $graphModules) {
     $mod = Get-Module -ListAvailable -Name $m |
            Where-Object { $_.Version -eq $targetVersion } | Select-Object -First 1
-    if (-not $mod) { Write-Err "No se encuentra $m $targetVersion. Abortando."; return }
+    if (-not $mod) { Write-Err (tr "No se encuentra $m $targetVersion. Abortando." "$m $targetVersion not found. Aborting."); return }
     Import-Module $mod.Path -Force -ErrorAction Stop
 }
-Write-Ok "Modulos cargados ($targetVersion)"
+Write-Ok (tr "Modulos cargados ($targetVersion)" "Modules loaded ($targetVersion)")
 
 
 # ============================================================
 #  CONEXION
 # ============================================================
-Write-Step "Conectando a Microsoft Graph"
+Write-Step (tr "Conectando a Microsoft Graph" "Connecting to Microsoft Graph")
 
 $connectArgs = @{
     Scopes = @(
@@ -3180,13 +3180,13 @@ Connect-MgGraph @connectArgs
 
 $ctx = Get-MgContext
 Write-Ok "Tenant : $($ctx.TenantId)"
-Write-Ok "Usuario: $($ctx.Account)"
+Write-Ok (tr "Usuario: $($ctx.Account)" "User   : $($ctx.Account)")
 
 
 # ============================================================
 #  LOCALIZAR LA APP
 # ============================================================
-Write-Step "Buscando la aplicacion"
+Write-Step (tr "Buscando la aplicacion" "Searching for the application")
 
 if ($AppIdInput) {
     $app = Get-MgApplication -Filter "appId eq '$AppIdInput'" -ErrorAction SilentlyContinue |
@@ -3194,14 +3194,14 @@ if ($AppIdInput) {
 } else {
     $matches = @(Get-MgApplication -Filter "displayName eq '$AppDisplayName'" -ErrorAction SilentlyContinue)
     if ($matches.Count -gt 1) {
-        Write-Warn "Hay $($matches.Count) apps con ese nombre:"
+        Write-Warn (tr "Hay $($matches.Count) apps con ese nombre:" "There are $($matches.Count) apps with that name:")
         for ($i = 0; $i -lt $matches.Count; $i++) {
-            Write-Host ("    [{0}] {1}  (creada {2})" -f ($i+1), $matches[$i].AppId,
+            Write-Host ("    [{0}] {1}  ($(tr 'creada' 'created') {2})" -f ($i+1), $matches[$i].AppId,
                         $matches[$i].CreatedDateTime) -ForegroundColor Gray
         }
         $sel = 0
         while ($sel -lt 1 -or $sel -gt $matches.Count) {
-            $v = Read-Host " Cual eliminar (1-$($matches.Count))"
+            $v = Read-Host (tr " Cual eliminar (1-$($matches.Count))" " Which one to delete (1-$($matches.Count))")
             [int]::TryParse($v, [ref]$sel) | Out-Null
         }
         $app = $matches[$sel - 1]
@@ -3211,7 +3211,7 @@ if ($AppIdInput) {
 }
 
 if (-not $app) {
-    Write-Err "No se encontro la aplicacion."
+    Write-Err (tr "No se encontro la aplicacion." "The application was not found.")
     Disconnect-MgGraph | Out-Null
     return
 }
@@ -3223,16 +3223,16 @@ $sp = Get-MgServicePrincipal -Filter "appId eq '$($app.AppId)'" -ErrorAction Sil
 # ============================================================
 #  INVENTARIO
 # ============================================================
-Write-Step "Inventario de lo que se va a eliminar"
+Write-Step (tr "Inventario de lo que se va a eliminar" "Inventory of what will be deleted")
 
-Write-Host "  Aplicacion    : $($app.DisplayName)"
+Write-Host (tr "  Aplicacion    : $($app.DisplayName)" "  Application   : $($app.DisplayName)")
 Write-Host "  AppId         : $($app.AppId)"
 Write-Host "  ObjectId      : $($app.Id)"
-Write-Host "  Creada        : $($app.CreatedDateTime)"
+Write-Host (tr "  Creada        : $($app.CreatedDateTime)" "  Created       : $($app.CreatedDateTime)")
 
 $certCount   = @($app.KeyCredentials).Count
 $secretCount = @($app.PasswordCredentials).Count
-Write-Host "  Certificados  : $certCount"
+Write-Host (tr "  Certificados  : $certCount" "  Certificates  : $certCount")
 Write-Host "  Secrets       : $secretCount"
 
 $thumbprints = @()
@@ -3240,7 +3240,7 @@ foreach ($kc in $app.KeyCredentials) {
     if ($kc.CustomKeyIdentifier) {
         $tp = [System.BitConverter]::ToString($kc.CustomKeyIdentifier).Replace('-','')
         $thumbprints += $tp
-        Write-Host "     - $tp (expira $($kc.EndDateTime.ToString('yyyy-MM-dd')))" -ForegroundColor DarkGray
+        Write-Host "     - $tp ($(tr 'expira' 'expires') $($kc.EndDateTime.ToString('yyyy-MM-dd')))" -ForegroundColor DarkGray
     }
 }
 
@@ -3266,24 +3266,24 @@ if ($sp) {
         } catch { }
     }
 
-    Write-Host "  Roles de directorio: $($roleMemberships.Count)"
+    Write-Host (tr "  Roles de directorio: $($roleMemberships.Count)" "  Directory roles: $($roleMemberships.Count)")
     $roleMemberships | ForEach-Object { Write-Host "     - $($_.Name)" -ForegroundColor DarkGray }
 
     # Permisos concedidos
     $appRoleAssigns = @(Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id -All -ErrorAction SilentlyContinue)
-    Write-Host "  Permisos concedidos: $($appRoleAssigns.Count)"
+    Write-Host (tr "  Permisos concedidos: $($appRoleAssigns.Count)" "  Granted permissions: $($appRoleAssigns.Count)")
 } else {
-    Write-Warn "No existe Service Principal para esta app"
+    Write-Warn (tr "No existe Service Principal para esta app" "There is no Service Principal for this app")
 }
 
 Write-Host ""
 Write-Host ("!" * 66) -ForegroundColor Red
-Write-Host " ESTA OPERACION ES DESTRUCTIVA" -ForegroundColor Red
+Write-Host (tr " ESTA OPERACION ES DESTRUCTIVA" " THIS OPERATION IS DESTRUCTIVE") -ForegroundColor Red
 Write-Host ("!" * 66) -ForegroundColor Red
 
-$confirm = Read-Host "`n Escribe el nombre exacto de la app para confirmar"
+$confirm = Read-Host (tr "`n Escribe el nombre exacto de la app para confirmar" "`n Type the exact app name to confirm")
 if ($confirm -ne $app.DisplayName) {
-    Write-Warn "El nombre no coincide. Cancelado."
+    Write-Warn (tr "El nombre no coincide. Cancelado." "The name does not match. Cancelled.")
     Disconnect-MgGraph | Out-Null
     return
 }
@@ -3293,7 +3293,7 @@ if ($confirm -ne $app.DisplayName) {
 #  1. ROLES DE DIRECTORIO
 # ============================================================
 if ($roleMemberships.Count -gt 0) {
-    Write-Step "Quitando membresias de roles de directorio"
+    Write-Step (tr "Quitando membresias de roles de directorio" "Removing directory role memberships")
 
     foreach ($r in $roleMemberships) {
         $err = $null
@@ -3306,12 +3306,12 @@ if ($roleMemberships.Count -gt 0) {
             $msg = if ($err -is [System.Management.Automation.ErrorRecord]) { $err.Exception.Message }
                    else { ($err | Select-Object -First 1).ToString() }
             if ($msg -match 'does not exist|Request_ResourceNotFound') {
-                Write-Ok "$($r.Name) (ya no era miembro)"
+                Write-Ok "$($r.Name) $(tr '(ya no era miembro)' '(was no longer a member)')"
             } else {
-                Write-Warn "Fallo al quitar '$($r.Name)': $msg"
+                Write-Warn (tr "Fallo al quitar '$($r.Name)': $msg" "Failed to remove '$($r.Name)': $msg")
             }
         } else {
-            Write-Ok "$($r.Name) (quitado)"
+            Write-Ok "$($r.Name) $(tr '(quitado)' '(removed)')"
         }
     }
 }
@@ -3321,7 +3321,7 @@ if ($roleMemberships.Count -gt 0) {
 #  2. PERMISOS CONCEDIDOS
 # ============================================================
 if ($appRoleAssigns.Count -gt 0) {
-    Write-Step "Revocando permisos concedidos"
+    Write-Step (tr "Revocando permisos concedidos" "Revoking granted permissions")
 
     $removed = 0; $failed = 0
     foreach ($a in $appRoleAssigns) {
@@ -3332,10 +3332,10 @@ if ($appRoleAssigns.Count -gt 0) {
             $removed++
         } catch {
             if ($_.Exception.Message -match 'does not exist|ResourceNotFound') { $removed++ }
-            else { $failed++; Write-Warn "Fallo en $($a.Id): $($_.Exception.Message)" }
+            else { $failed++; Write-Warn (tr "Fallo en $($a.Id): $($_.Exception.Message)" "Failed on $($a.Id): $($_.Exception.Message)") }
         }
     }
-    Write-Ok "$removed revocados | $failed fallidos"
+    Write-Ok (tr "$removed revocados | $failed fallidos" "$removed revoked | $failed failed")
 }
 
 
@@ -3352,17 +3352,17 @@ if ($sp) {
             -ErrorAction Stop
         if ($resp.value) { $grants = @($resp.value) }
     } catch {
-        Write-Warn "No se pudieron consultar los consentimientos delegados: $($_.Exception.Message)"
+        Write-Warn (tr "No se pudieron consultar los consentimientos delegados: $($_.Exception.Message)" "Could not query delegated grants: $($_.Exception.Message)")
     }
     if ($grants.Count -gt 0) {
-        Write-Step "Eliminando consentimientos delegados ($($grants.Count))"
+        Write-Step (tr "Eliminando consentimientos delegados ($($grants.Count))" "Removing delegated grants ($($grants.Count))")
         foreach ($grant in $grants) {
             try {
                 Invoke-MgGraphRequest -Method DELETE `
                     -Uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants/$($grant.id)" -ErrorAction Stop
                 Write-Ok "Grant $($grant.id)"
             } catch {
-                Write-Warn "Fallo: $($_.Exception.Message)"
+                Write-Warn (tr "Fallo: $($_.Exception.Message)" "Failed: $($_.Exception.Message)")
             }
         }
     }
@@ -3373,13 +3373,13 @@ if ($sp) {
 #  4. CREDENCIALES DE LA APP
 # ============================================================
 if ($certCount -gt 0 -or $secretCount -gt 0) {
-    Write-Step "Eliminando credenciales de la aplicacion"
+    Write-Step (tr "Eliminando credenciales de la aplicacion" "Removing application credentials")
     try {
         Update-MgApplication -ApplicationId $app.Id `
             -KeyCredentials @() -PasswordCredentials @() -ErrorAction Stop
-        Write-Ok "$certCount certificados y $secretCount secrets eliminados"
+        Write-Ok (tr "$certCount certificados y $secretCount secrets eliminados" "$certCount certificates and $secretCount secrets removed")
     } catch {
-        Write-Warn "Fallo al limpiar credenciales: $($_.Exception.Message)"
+        Write-Warn (tr "Fallo al limpiar credenciales: $($_.Exception.Message)" "Failed to clear credentials: $($_.Exception.Message)")
     }
 }
 
@@ -3388,12 +3388,12 @@ if ($certCount -gt 0 -or $secretCount -gt 0) {
 #  5. SERVICE PRINCIPAL
 # ============================================================
 if ($sp) {
-    Write-Step "Eliminando Service Principal"
+    Write-Step (tr "Eliminando Service Principal" "Removing Service Principal")
     try {
         Remove-MgServicePrincipal -ServicePrincipalId $sp.Id -ErrorAction Stop
-        Write-Ok "Service Principal eliminado ($($sp.Id))"
+        Write-Ok (tr "Service Principal eliminado ($($sp.Id))" "Service Principal removed ($($sp.Id))")
     } catch {
-        Write-Warn "Fallo: $($_.Exception.Message)"
+        Write-Warn (tr "Fallo: $($_.Exception.Message)" "Failed: $($_.Exception.Message)")
     }
 }
 
@@ -3401,25 +3401,25 @@ if ($sp) {
 # ============================================================
 #  6. APP REGISTRATION
 # ============================================================
-Write-Step "Eliminando App Registration"
+Write-Step (tr "Eliminando App Registration" "Removing App Registration")
 try {
     Remove-MgApplication -ApplicationId $app.Id -ErrorAction Stop
-    Write-Ok "Aplicacion eliminada ($($app.AppId))"
-    Write-Warn "Queda en 'Deleted applications' 30 dias. Se puede restaurar o purgar desde el portal."
+    Write-Ok (tr "Aplicacion eliminada ($($app.AppId))" "Application removed ($($app.AppId))")
+    Write-Warn (tr "Queda en 'Deleted applications' 30 dias. Se puede restaurar o purgar desde el portal." "It stays in 'Deleted applications' for 30 days. It can be restored or purged from the portal.")
 } catch {
-    Write-Err "Fallo al eliminar la aplicacion: $($_.Exception.Message)"
+    Write-Err (tr "Fallo al eliminar la aplicacion: $($_.Exception.Message)" "Failed to delete the application: $($_.Exception.Message)")
 }
 
 # Purga definitiva opcional
-if (Read-YesNo "`n Purgar definitivamente (sin periodo de restauracion)?" $false) {
+if (Read-YesNo (tr "`n Purgar definitivamente (sin periodo de restauracion)?" "`n Purge permanently (no restore period)?") $false) {
     try {
         Start-Sleep -Seconds 5
         Invoke-MgGraphRequest -Method DELETE `
             -Uri "https://graph.microsoft.com/v1.0/directory/deletedItems/$($app.Id)" -ErrorAction Stop
-        Write-Ok "Purgada definitivamente"
+        Write-Ok (tr "Purgada definitivamente" "Permanently purged")
     } catch {
-        Write-Warn "No se pudo purgar: $($_.Exception.Message)"
-        Write-Warn "Hazlo desde Entra ID > App registrations > Deleted applications"
+        Write-Warn (tr "No se pudo purgar: $($_.Exception.Message)" "Could not purge: $($_.Exception.Message)")
+        Write-Warn (tr "Hazlo desde Entra ID > App registrations > Deleted applications" "Do it from Entra ID > App registrations > Deleted applications")
     }
 }
 
@@ -3430,7 +3430,7 @@ Disconnect-MgGraph | Out-Null
 #  7. CERTIFICADO LOCAL
 # ============================================================
 if ($thumbprints.Count -gt 0) {
-    Write-Step "Certificado local"
+    Write-Step (tr "Certificado local" "Local certificate")
 
     $localCerts = @()
     foreach ($store in @('Cert:\CurrentUser\My','Cert:\LocalMachine\My')) {
@@ -3442,18 +3442,18 @@ if ($thumbprints.Count -gt 0) {
     }
 
     if ($localCerts.Count -eq 0) {
-        Write-Ok "No hay certificados asociados en el almacen local"
+        Write-Ok (tr "No hay certificados asociados en el almacen local" "No associated certificates in the local store")
     } else {
         foreach ($lc in $localCerts) {
             Write-Host "    $($lc.Store)  $($lc.Cert.Thumbprint)  $($lc.Cert.Subject)" -ForegroundColor Gray
         }
-        if (Read-YesNo " Eliminarlos del almacen local?" $true) {
+        if (Read-YesNo (tr " Eliminarlos del almacen local?" " Remove them from the local store?") $true) {
             foreach ($lc in $localCerts) {
                 try {
                     Remove-Item -Path (Join-Path $lc.Store $lc.Cert.Thumbprint) -Force -ErrorAction Stop
-                    Write-Ok "Eliminado $($lc.Cert.Thumbprint) de $($lc.Store)"
+                    Write-Ok (tr "Eliminado $($lc.Cert.Thumbprint) de $($lc.Store)" "Removed $($lc.Cert.Thumbprint) from $($lc.Store)")
                 } catch {
-                    Write-Warn "Fallo (puede requerir admin para LocalMachine): $($_.Exception.Message)"
+                    Write-Warn (tr "Fallo (puede requerir admin para LocalMachine): $($_.Exception.Message)" "Failed (may require admin for LocalMachine): $($_.Exception.Message)")
                 }
             }
         }
@@ -3464,9 +3464,9 @@ if ($thumbprints.Count -gt 0) {
 # ============================================================
 #  8. FICHEROS GENERADOS
 # ============================================================
-Write-Step "Ficheros generados"
+Write-Step (tr "Ficheros generados" "Generated files")
 
-$searchDir = Read-WithDefault " Carpeta donde buscar ficheros generados (vacio = omitir)" $PWD.Path
+$searchDir = Read-WithDefault (tr " Carpeta donde buscar ficheros generados (vacio = omitir)" " Folder to search for generated files (empty = skip)") $PWD.Path
 
 if ($searchDir -and (Test-Path $searchDir)) {
     $patterns = @(
@@ -3484,15 +3484,15 @@ if ($searchDir -and (Test-Path $searchDir)) {
     }
 
     if ($files.Count -eq 0) {
-        Write-Ok "No se encontraron ficheros generados"
+        Write-Ok (tr "No se encontraron ficheros generados" "No generated files were found")
     } else {
         $files | ForEach-Object { Write-Host "    $($_.FullName)" -ForegroundColor Gray }
-        if (Read-YesNo " Eliminarlos?" $false) {
+        if (Read-YesNo (tr " Eliminarlos?" " Delete them?") $false) {
             foreach ($f in $files) {
                 try {
                     Remove-Item $f.FullName -Force -ErrorAction Stop
-                    Write-Ok "Eliminado $($f.Name)"
-                } catch { Write-Warn "Fallo: $($_.Exception.Message)" }
+                    Write-Ok (tr "Eliminado $($f.Name)" "Removed $($f.Name)")
+                } catch { Write-Warn (tr "Fallo: $($_.Exception.Message)" "Failed: $($_.Exception.Message)") }
             }
         }
     }
@@ -3500,7 +3500,7 @@ if ($searchDir -and (Test-Path $searchDir)) {
 
 Write-Host "`n" -NoNewline
 Write-Host ("=" * 66) -ForegroundColor Green
-Write-Host " DESMANTELAMIENTO COMPLETADO" -ForegroundColor Green
+Write-Host (tr " DESMANTELAMIENTO COMPLETADO" " DISMANTLING COMPLETED") -ForegroundColor Green
 Write-Host ("=" * 66) -ForegroundColor Green
 Write-Host ""
 }
