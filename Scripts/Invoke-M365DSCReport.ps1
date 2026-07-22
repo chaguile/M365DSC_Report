@@ -382,18 +382,21 @@ $ResourceAppIds = @{
 }
 
 # Componentes conocidos como problematicos (se ofrece excluirlos)
+$rbac = tr 'Requiere rol RBAC sobre una suscripcion Azure' 'Requires an RBAC role on an Azure subscription'
+$verid = tr 'Verified ID no aprovisionado en la mayoria de tenants' 'Verified ID not provisioned in most tenants'
+$deleg = tr 'Solo soporta autenticacion delegada (Credential)' 'Only supports delegated authentication (Credential)'
 $KnownProblematic = @{
-    'AADVerifiedIdAuthority'                    = 'Verified ID no aprovisionado en la mayoria de tenants'
-    'AADVerifiedIdAuthorityContract'            = 'Verified ID no aprovisionado en la mayoria de tenants'
-    'AADUserFlowAttribute'                      = 'Recurso exclusivo de Azure AD B2C'
-    'IntuneCustomizationBrandingProfile'         = 'Bug: falla si el perfil tiene DisplayName vacio'
-    'AzureRoleDefinition'                       = 'Requiere rol RBAC sobre una suscripcion Azure'
-    'AzureRoleAssignmentScheduleRequest'        = 'Requiere rol RBAC sobre una suscripcion Azure'
-    'AzureRoleEligibilityScheduleRequest'       = 'Requiere rol RBAC sobre una suscripcion Azure'
-    'AzureRoleEligibilityScheduleSettings'      = 'Requiere rol RBAC sobre una suscripcion Azure'
-    'PlannerBucket'                             = 'Solo soporta autenticacion delegada (Credential)'
-    'PlannerPlan'                               = 'Solo soporta autenticacion delegada (Credential)'
-    'PlannerTask'                               = 'Solo soporta autenticacion delegada (Credential)'
+    'AADVerifiedIdAuthority'                    = $verid
+    'AADVerifiedIdAuthorityContract'            = $verid
+    'AADUserFlowAttribute'                      = (tr 'Recurso exclusivo de Azure AD B2C' 'Azure AD B2C-only resource')
+    'IntuneCustomizationBrandingProfile'         = (tr 'Bug: falla si el perfil tiene DisplayName vacio' 'Bug: fails if the profile has an empty DisplayName')
+    'AzureRoleDefinition'                       = $rbac
+    'AzureRoleAssignmentScheduleRequest'        = $rbac
+    'AzureRoleEligibilityScheduleRequest'       = $rbac
+    'AzureRoleEligibilityScheduleSettings'      = $rbac
+    'PlannerBucket'                             = $deleg
+    'PlannerPlan'                               = $deleg
+    'PlannerTask'                               = $deleg
 }
 
 
@@ -402,23 +405,23 @@ $KnownProblematic = @{
 # ============================================================
 Clear-Host
 Write-Host ("=" * 66) -ForegroundColor Cyan
-Write-Host " APP REGISTRATION PARA MICROSOFT365DSC - MODO CERTIFICADO" -ForegroundColor Cyan
+Write-Host (tr " APP REGISTRATION PARA MICROSOFT365DSC - MODO CERTIFICADO" " APP REGISTRATION FOR MICROSOFT365DSC - CERTIFICATE MODE") -ForegroundColor Cyan
 Write-Host ("=" * 66) -ForegroundColor Cyan
 
 # --- Componentes ---
-Write-Step "Componentes a exportar"
-Write-Host "   1) Pegar la lista ahora" -ForegroundColor Gray
-Write-Host "   2) Leer desde fichero de texto (uno por linea)" -ForegroundColor Gray
-Write-Host "   3) Extraer desde un script de export existente (.ps1)" -ForegroundColor Gray
+Write-Step (tr "Componentes a exportar" "Components to export")
+Write-Host (tr "   1) Pegar la lista ahora" "   1) Paste the list now") -ForegroundColor Gray
+Write-Host (tr "   2) Leer desde fichero de texto (uno por linea)" "   2) Read from a text file (one per line)") -ForegroundColor Gray
+Write-Host (tr "   3) Extraer desde un script de export existente (.ps1)" "   3) Extract from an existing export script (.ps1)") -ForegroundColor Gray
 
-$modo = Read-WithDefault "Selecciona" "3"
+$modo = Read-WithDefault (tr "Selecciona" "Select") "3"
 $Components = @()
 
 switch ($modo) {
     '2' {
         do {
-            $path = (Read-Host " Ruta del fichero").Trim('"').Trim()
-            if (-not (Test-Path $path)) { Write-Err "No existe: $path" }
+            $path = (Read-Host (tr " Ruta del fichero" " File path")).Trim('"').Trim()
+            if (-not (Test-Path $path)) { Write-Err (tr "No existe: $path" "Does not exist: $path") }
         } until (Test-Path $path)
         $Components = Get-Content $path |
                       ForEach-Object { $_.Trim().Trim(',').Trim('"').Trim("'") } |
@@ -426,17 +429,17 @@ switch ($modo) {
     }
     '3' {
         do {
-            $path = (Read-Host " Ruta del script .ps1").Trim('"').Trim()
-            if (-not (Test-Path $path)) { Write-Err "No existe: $path" }
+            $path = (Read-Host (tr " Ruta del script .ps1" " Path to the .ps1 script")).Trim('"').Trim()
+            if (-not (Test-Path $path)) { Write-Err (tr "No existe: $path" "Does not exist: $path") }
         } until (Test-Path $path)
         $raw = Get-Content $path -Raw
         if ($raw -match '(?s)-Components\s*@\((.*?)\)') {
             $Components = [regex]::Matches($Matches[1], '"([^"]+)"') |
                           ForEach-Object { $_.Groups[1].Value }
-        } else { Write-Err "No se encontro un bloque -Components @(...)" }
+        } else { Write-Err (tr "No se encontro un bloque -Components @(...)" "No -Components @(...) block was found") }
     }
     default {
-        Write-Host " Pega los componentes. Escribe FIN para terminar:" -ForegroundColor Gray
+        Write-Host (tr " Pega los componentes. Escribe FIN para terminar:" " Paste the components. Type FIN to finish:") -ForegroundColor Gray
         $buffer = @()
         while ($true) {
             $line = Read-Host
@@ -455,73 +458,73 @@ switch ($modo) {
 }
 
 $Components = @($Components | Select-Object -Unique)
-if ($Components.Count -eq 0) { Write-Err "No se obtuvieron componentes. Abortando."; return }
-Write-Ok "$($Components.Count) componentes cargados"
+if ($Components.Count -eq 0) { Write-Err (tr "No se obtuvieron componentes. Abortando." "No components were obtained. Aborting."); return }
+Write-Ok (tr "$($Components.Count) componentes cargados" "$($Components.Count) components loaded")
 
 # --- Filtrado de problematicos ---
 $found = @($Components | Where-Object { $KnownProblematic.ContainsKey($_) })
 if ($found.Count -gt 0) {
-    Write-Step "Componentes con problemas conocidos"
+    Write-Step (tr "Componentes con problemas conocidos" "Components with known problems")
     foreach ($c in $found) {
         Write-Host ("    {0,-42} {1}" -f $c, $KnownProblematic[$c]) -ForegroundColor Yellow
     }
-    if (Read-YesNo "`n Excluirlos del export generado?" $true) {
+    if (Read-YesNo (tr "`n Excluirlos del export generado?" "`n Exclude them from the generated export?") $true) {
         $Components = @($Components | Where-Object { $KnownProblematic.Keys -notcontains $_ })
-        Write-Ok "Quedan $($Components.Count) componentes"
+        Write-Ok (tr "Quedan $($Components.Count) componentes" "$($Components.Count) components remain")
     }
 }
 
 # --- App Registration ---
-Write-Step "Datos de la App Registration"
-$AppDisplayName = Read-WithDefault " Nombre de la aplicacion" "M365DSC-Export"
-$AssignDirRoles = Read-YesNo " Asignar roles de directorio (Global Reader / Exchange Admin)?" $true
+Write-Step (tr "Datos de la App Registration" "App Registration details")
+$AppDisplayName = Read-WithDefault (tr " Nombre de la aplicacion" " Application name") "M365DSC-Export"
+$AssignDirRoles = Read-YesNo (tr " Asignar roles de directorio (Global Reader / Exchange Admin)?" " Assign directory roles (Global Reader / Exchange Admin)?") $true
 
 # --- Certificado ---
-Write-Step "Certificado"
-Write-Host "   1) Generar uno nuevo autofirmado" -ForegroundColor Gray
-Write-Host "   2) Usar uno existente del almacen (por thumbprint)" -ForegroundColor Gray
-$certMode = Read-WithDefault " Selecciona" "1"
+Write-Step (tr "Certificado" "Certificate")
+Write-Host (tr "   1) Generar uno nuevo autofirmado" "   1) Generate a new self-signed one") -ForegroundColor Gray
+Write-Host (tr "   2) Usar uno existente del almacen (por thumbprint)" "   2) Use an existing one from the store (by thumbprint)") -ForegroundColor Gray
+$certMode = Read-WithDefault (tr " Selecciona" " Select") "1"
 
 $CertSubject = $null; $CertYears = 2; $ExistingThumb = $null
 $CertStore = 'Cert:\CurrentUser\My'
 
 if ($certMode -eq '2') {
     do {
-        $ExistingThumb = (Read-Host " Thumbprint del certificado").Trim().Replace(' ','').ToUpper()
+        $ExistingThumb = (Read-Host (tr " Thumbprint del certificado" " Certificate thumbprint")).Trim().Replace(' ','').ToUpper()
         $test = Get-ChildItem $CertStore | Where-Object { $_.Thumbprint -eq $ExistingThumb }
         if (-not $test) {
             $test = Get-ChildItem 'Cert:\LocalMachine\My' -ErrorAction SilentlyContinue |
                     Where-Object { $_.Thumbprint -eq $ExistingThumb }
             if ($test) { $CertStore = 'Cert:\LocalMachine\My' }
         }
-        if (-not $test) { Write-Err "No encontrado en CurrentUser\My ni LocalMachine\My" }
+        if (-not $test) { Write-Err (tr "No encontrado en CurrentUser\My ni LocalMachine\My" "Not found in CurrentUser\My or LocalMachine\My") }
     } until ($test)
-    Write-Ok "Encontrado: $($test.Subject) (expira $($test.NotAfter.ToString('yyyy-MM-dd')))"
+    Write-Ok (tr "Encontrado: $($test.Subject) (expira $($test.NotAfter.ToString('yyyy-MM-dd')))" "Found: $($test.Subject) (expires $($test.NotAfter.ToString('yyyy-MM-dd')))")
 } else {
-    $CertSubject = Read-WithDefault " Subject del certificado" "CN=$AppDisplayName"
+    $CertSubject = Read-WithDefault (tr " Subject del certificado" " Certificate subject") "CN=$AppDisplayName"
     $CertYears = 0
     while ($CertYears -lt 1 -or $CertYears -gt 5) {
-        $v = Read-WithDefault " Validez en anos (1-5)" "2"
+        $v = Read-WithDefault (tr " Validez en anos (1-5)" " Validity in years (1-5)") "2"
         [int]::TryParse($v, [ref]$CertYears) | Out-Null
-        if ($CertYears -lt 1 -or $CertYears -gt 5) { Write-Warn "Debe estar entre 1 y 5" }
+        if ($CertYears -lt 1 -or $CertYears -gt 5) { Write-Warn (tr "Debe estar entre 1 y 5" "Must be between 1 and 5") }
     }
-    $ExportPfx = Read-YesNo " Exportar tambien .pfx (para usar en otra maquina)?" $true
+    $ExportPfx = Read-YesNo (tr " Exportar tambien .pfx (para usar en otra maquina)?" " Also export .pfx (to use on another machine)?") $true
 }
 
 # --- Tenant ---
-Write-Step "Tenant destino"
-Write-Host " Deja vacio para usar el tenant del usuario que inicie sesion." -ForegroundColor Gray
-$TenantHint = (Read-Host " TenantId o dominio (opcional)").Trim()
+Write-Step (tr "Tenant destino" "Target tenant")
+Write-Host (tr " Deja vacio para usar el tenant del usuario que inicie sesion." " Leave blank to use the tenant of the signing-in user.") -ForegroundColor Gray
+$TenantHint = (Read-Host (tr " TenantId o dominio (opcional)" " TenantId or domain (optional)")).Trim()
 
 # --- Salida ---
-Write-Step "Rutas de salida"
-$ExportPath = Read-WithDefault " Carpeta destino del export M365DSC" "C:\M365DSC\Export"
-$OutDir     = Read-WithDefault " Carpeta para el script y el certificado" $PWD.Path
+Write-Step (tr "Rutas de salida" "Output paths")
+$ExportPath = Read-WithDefault (tr " Carpeta destino del export M365DSC" " M365DSC export destination folder") "C:\M365DSC\Export"
+$OutDir     = Read-WithDefault (tr " Carpeta para el script y el certificado" " Folder for the script and the certificate") $PWD.Path
 
 if (-not (Test-Path $OutDir)) {
-    if (Read-YesNo " La carpeta no existe. Crearla?" $true) {
+    if (Read-YesNo (tr " La carpeta no existe. Crearla?" " The folder does not exist. Create it?") $true) {
         New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
-    } else { Write-Err "Abortando."; return }
+    } else { Write-Err (tr "Abortando." "Aborting."); return }
 }
 
 # El export unificado (paso 4) aisla SharePoint en un proceso hijo por si mismo,
@@ -531,7 +534,7 @@ if (-not (Test-Path $OutDir)) {
 # ============================================================
 #  CALCULO DE PERMISOS
 # ============================================================
-Write-Step "Analizando componentes"
+Write-Step (tr "Analizando componentes" "Analyzing components")
 
 $activeWorkloads = @(); $graphPerms = @(); $otherPerms = @{}
 
@@ -557,14 +560,14 @@ foreach ($wlName in $PermissionCatalog.Keys) {
 $graphPerms = @($graphPerms | Sort-Object -Unique)
 foreach ($k in @($otherPerms.Keys)) { $otherPerms[$k] = @($otherPerms[$k] | Sort-Object -Unique) }
 
-Write-Host "  Workloads detectados:" -ForegroundColor Gray
+Write-Host (tr "  Workloads detectados:" "  Detected workloads:") -ForegroundColor Gray
 foreach ($wlName in $activeWorkloads) {
     $count = 0
     foreach ($pfx in $PermissionCatalog[$wlName].Prefixes) {
         if ($pfx -eq '') { $count = $Components.Count; break }
         $count += @($Components | Where-Object { $_ -like "$pfx*" }).Count
     }
-    Write-Host ("    {0,-16} {1,4} componentes" -f $wlName, $count) -ForegroundColor Gray
+    Write-Host ("    {0,-16} {1,4} $(tr 'componentes' 'components')" -f $wlName, $count) -ForegroundColor Gray
 }
 
 Write-Host "`n  Microsoft Graph ($($graphPerms.Count)):" -ForegroundColor Gray
@@ -574,24 +577,24 @@ foreach ($resKey in $otherPerms.Keys) {
     $otherPerms[$resKey] | ForEach-Object { Write-Host "    - $_" -ForegroundColor DarkGray }
 }
 
-Write-Step "Resumen"
-Write-Host "  Componentes    : $($Components.Count)"
-Write-Host "  Workloads      : $($activeWorkloads -join ', ')"
-Write-Host "  Permisos Graph : $($graphPerms.Count)"
-Write-Host "  Aplicacion     : $AppDisplayName"
-Write-Host "  Autenticacion  : Certificado"
-Write-Host "  Roles dir.     : $(if($AssignDirRoles){'si'}else{'no'})"
-Write-Host "  Tenant         : $(if($TenantHint){$TenantHint}else{'(el del usuario)'})"
-Write-Host "  Export path    : $ExportPath"
-Write-Host "  Salida         : $OutDir"
+Write-Step (tr "Resumen" "Summary")
+Write-Host ("  {0}: $($Components.Count)" -f (tr 'Componentes    ' 'Components     '))
+Write-Host ("  {0}: $($activeWorkloads -join ', ')" -f (tr 'Workloads      ' 'Workloads      '))
+Write-Host ("  {0}: $($graphPerms.Count)" -f (tr 'Permisos Graph ' 'Graph perms.   '))
+Write-Host ("  {0}: $AppDisplayName" -f (tr 'Aplicacion     ' 'Application     '))
+Write-Host ("  {0}: $(tr 'Certificado' 'Certificate')" -f (tr 'Autenticacion  ' 'Authentication '))
+Write-Host ("  {0}: $(if($AssignDirRoles){tr 'si' 'yes'}else{'no'})" -f (tr 'Roles dir.     ' 'Dir. roles     '))
+Write-Host ("  {0}: $(if($TenantHint){$TenantHint}else{tr '(el del usuario)' '(the user''s)'})" -f (tr 'Tenant         ' 'Tenant         '))
+Write-Host ("  {0}: $ExportPath" -f (tr 'Export path    ' 'Export path    '))
+Write-Host ("  {0}: $OutDir" -f (tr 'Salida         ' 'Output         '))
 
-if (-not (Read-YesNo "`n Continuar?" $true)) { Write-Warn "Cancelado."; return }
+if (-not (Read-YesNo (tr "`n Continuar?" "`n Continue?") $true)) { Write-Warn (tr "Cancelado." "Cancelled."); return }
 
 
 # ============================================================
 #  MODULOS DE GRAPH
 # ============================================================
-Write-Step "Preparando modulos de Microsoft Graph"
+Write-Step (tr "Preparando modulos de Microsoft Graph" "Preparing Microsoft Graph modules")
 
 $graphModules = @(
     'Microsoft.Graph.Authentication'
@@ -601,7 +604,7 @@ $graphModules = @(
 
 foreach ($m in $graphModules) {
     if (-not (Get-Module -ListAvailable -Name $m)) {
-        Write-Warn "Instalando $m ..."
+        Write-Warn (tr "Instalando $m ..." "Installing $m ...")
         Install-Module $m -Scope CurrentUser -Force -AllowClobber
     }
 }
@@ -618,20 +621,20 @@ $targetVersion = $commonVersions | Sort-Object -Descending | Select-Object -Firs
 if (-not $targetVersion) {
     $targetVersion = (Get-Module Microsoft.Graph.Authentication -ListAvailable |
                       Sort-Object Version -Descending | Select-Object -First 1).Version
-    Write-Warn "Sin version comun. Forzando $targetVersion."
+    Write-Warn (tr "Sin version comun. Forzando $targetVersion." "No common version. Forcing $targetVersion.")
     foreach ($m in $graphModules) {
         if (-not (Get-Module -ListAvailable -Name $m | Where-Object { $_.Version -eq $targetVersion })) {
             Install-Module $m -RequiredVersion $targetVersion -Scope CurrentUser -Force -AllowClobber
         }
     }
 }
-Write-Ok "Version objetivo: $targetVersion"
+Write-Ok (tr "Version objetivo: $targetVersion" "Target version: $targetVersion")
 
 Get-Module Microsoft.Graph* | Remove-Module -Force -ErrorAction SilentlyContinue
 foreach ($m in $graphModules) {
     $mod = Get-Module -ListAvailable -Name $m |
            Where-Object { $_.Version -eq $targetVersion } | Select-Object -First 1
-    if (-not $mod) { Write-Err "No se encuentra $m $targetVersion. Abortando."; return }
+    if (-not $mod) { Write-Err (tr "No se encuentra $m $targetVersion. Abortando." "$m $targetVersion not found. Aborting."); return }
     Import-Module $mod.Path -Force -ErrorAction Stop
     Write-Ok "$m $targetVersion"
 }
@@ -640,11 +643,11 @@ foreach ($m in $graphModules) {
 # ============================================================
 #  CERTIFICADO
 # ============================================================
-Write-Step "Certificado"
+Write-Step (tr "Certificado" "Certificate")
 
 if ($certMode -eq '2') {
     $cert = Get-ChildItem $CertStore | Where-Object { $_.Thumbprint -eq $ExistingThumb }
-    Write-Ok "Usando existente: $($cert.Thumbprint)"
+    Write-Ok (tr "Usando existente: $($cert.Thumbprint)" "Using existing: $($cert.Thumbprint)")
 } else {
     $cert = New-SelfSignedCertificate `
         -Subject           $CertSubject `
@@ -656,30 +659,30 @@ if ($certMode -eq '2') {
         -HashAlgorithm     SHA256 `
         -NotAfter          (Get-Date).AddYears($CertYears)
 
-    Write-Ok "Creado: $($cert.Subject)"
+    Write-Ok (tr "Creado: $($cert.Subject)" "Created: $($cert.Subject)")
     Write-Ok "Thumbprint: $($cert.Thumbprint)"
-    Write-Ok "Expira: $($cert.NotAfter.ToString('yyyy-MM-dd'))"
+    Write-Ok (tr "Expira: $($cert.NotAfter.ToString('yyyy-MM-dd'))" "Expires: $($cert.NotAfter.ToString('yyyy-MM-dd'))")
 }
 
 $cerPath = Join-Path $OutDir "$AppDisplayName.cer"
 Export-Certificate -Cert $cert -FilePath $cerPath -Force | Out-Null
-Write-Ok "Clave publica exportada: $cerPath"
+Write-Ok (tr "Clave publica exportada: $cerPath" "Public key exported: $cerPath")
 
 $pfxPath = $null
 if ($certMode -ne '2' -and $ExportPfx) {
-    Write-Host " Introduce una contrasena para proteger el .pfx:" -ForegroundColor Gray
-    $pfxPwd = Read-Host " Contrasena" -AsSecureString
+    Write-Host (tr " Introduce una contrasena para proteger el .pfx:" " Enter a password to protect the .pfx:") -ForegroundColor Gray
+    $pfxPwd = Read-Host (tr " Contrasena" " Password") -AsSecureString
     $pfxPath = Join-Path $OutDir "$AppDisplayName.pfx"
     Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pfxPwd -Force | Out-Null
-    Write-Ok "Clave privada exportada: $pfxPath"
-    Write-Warn "El .pfx contiene la clave privada. Protegelo como una contrasena."
+    Write-Ok (tr "Clave privada exportada: $pfxPath" "Private key exported: $pfxPath")
+    Write-Warn (tr "El .pfx contiene la clave privada. Protegelo como una contrasena." "The .pfx contains the private key. Protect it like a password.")
 }
 
 
 # ============================================================
 #  CONEXION
 # ============================================================
-Write-Step "Conectando a Microsoft Graph (se abrira el navegador)"
+Write-Step (tr "Conectando a Microsoft Graph (se abrira el navegador)" "Connecting to Microsoft Graph (the browser will open)")
 
 $connectArgs = @{
     Scopes = @(
@@ -696,10 +699,10 @@ Connect-MgGraph @connectArgs
 
 $ctx = Get-MgContext
 Write-Ok "Tenant : $($ctx.TenantId)"
-Write-Ok "Usuario: $($ctx.Account)"
+Write-Ok (tr "Usuario: $($ctx.Account)" "User   : $($ctx.Account)")
 
-if (-not (Read-YesNo " Es el tenant correcto?" $true)) {
-    Disconnect-MgGraph | Out-Null; Write-Warn "Cancelado."; return
+if (-not (Read-YesNo (tr " Es el tenant correcto?" " Is this the correct tenant?") $true)) {
+    Disconnect-MgGraph | Out-Null; Write-Warn (tr "Cancelado." "Cancelled."); return
 }
 
 
@@ -712,13 +715,13 @@ $app = Get-MgApplication -Filter "displayName eq '$AppDisplayName'" -ErrorAction
        Select-Object -First 1
 
 if ($app) {
-    Write-Warn "Ya existe (AppId: $($app.AppId))"
-    if (-not (Read-YesNo " Reutilizarla y actualizar permisos + certificado?" $true)) {
-        Disconnect-MgGraph | Out-Null; Write-Warn "Cancelado."; return
+    Write-Warn (tr "Ya existe (AppId: $($app.AppId))" "Already exists (AppId: $($app.AppId))")
+    if (-not (Read-YesNo (tr " Reutilizarla y actualizar permisos + certificado?" " Reuse it and update permissions + certificate?") $true)) {
+        Disconnect-MgGraph | Out-Null; Write-Warn (tr "Cancelado." "Cancelled."); return
     }
 } else {
     $app = New-MgApplication -DisplayName $AppDisplayName -SignInAudience 'AzureADMyOrg'
-    Write-Ok "Creada (AppId: $($app.AppId))"
+    Write-Ok (tr "Creada (AppId: $($app.AppId))" "Created (AppId: $($app.AppId))")
     Start-Sleep -Seconds 10
 }
 
@@ -726,15 +729,15 @@ $sp = Get-MgServicePrincipal -Filter "appId eq '$($app.AppId)'" -ErrorAction Sil
       Select-Object -First 1
 if (-not $sp) {
     $sp = New-MgServicePrincipal -AppId $app.AppId
-    Write-Ok "Service Principal creado"
+    Write-Ok (tr "Service Principal creado" "Service Principal created")
     Start-Sleep -Seconds 10
-} else { Write-Ok "Service Principal existente" }
+} else { Write-Ok (tr "Service Principal existente" "Existing Service Principal") }
 
 
 # ============================================================
 #  SUBIR EL CERTIFICADO A LA APP
 # ============================================================
-Write-Step "Subiendo el certificado a la aplicacion"
+Write-Step (tr "Subiendo el certificado a la aplicacion" "Uploading the certificate to the application")
 
 $app = Get-MgApplication -ApplicationId $app.Id
 $existingKeys = @($app.KeyCredentials)
@@ -745,7 +748,7 @@ $alreadyThere = $existingKeys | Where-Object {
 }
 
 if ($alreadyThere) {
-    Write-Ok "El certificado ya estaba asociado a la app"
+    Write-Ok (tr "El certificado ya estaba asociado a la app" "The certificate was already associated with the app")
 } else {
     $newKey = @{
         Type                = 'AsymmetricX509Cert'
@@ -769,8 +772,8 @@ if ($alreadyThere) {
     })
 
     Update-MgApplication -ApplicationId $app.Id -KeyCredentials (@($keep) + @($newKey))
-    Write-Ok "Certificado asociado ($($cert.Thumbprint))"
-    if ($keep.Count -gt 0) { Write-Ok "Conservados $($keep.Count) certificados previos vigentes" }
+    Write-Ok (tr "Certificado asociado ($($cert.Thumbprint))" "Certificate associated ($($cert.Thumbprint))")
+    if ($keep.Count -gt 0) { Write-Ok (tr "Conservados $($keep.Count) certificados previos vigentes" "Kept $($keep.Count) previous valid certificates") }
     Start-Sleep -Seconds 5
 }
 
@@ -778,14 +781,14 @@ if ($alreadyThere) {
 # ============================================================
 #  MANIFIESTO
 # ============================================================
-Write-Step "Registrando permisos en el manifiesto"
+Write-Step (tr "Registrando permisos en el manifiesto" "Registering permissions in the manifest")
 
 function Get-ResourceEntry {
     param([string]$ResourceAppId, [string[]]$PermissionNames)
 
     $resSp = Get-MgServicePrincipal -Filter "appId eq '$ResourceAppId'" -ErrorAction SilentlyContinue |
              Select-Object -First 1
-    if (-not $resSp) { Write-Warn "Service Principal no encontrado: $ResourceAppId"; return $null }
+    if (-not $resSp) { Write-Warn (tr "Service Principal no encontrado: $ResourceAppId" "Service Principal not found: $ResourceAppId"); return $null }
 
     $access = @()
     foreach ($p in $PermissionNames) {
@@ -793,7 +796,7 @@ function Get-ResourceEntry {
             $_.Value -eq $p -and $_.AllowedMemberTypes -contains 'Application' -and $_.IsEnabled
         }
         if ($role) { $access += @{ id = $role.Id; type = 'Role' } }
-        else       { Write-Warn "No disponible en este tenant, se omite: $p" }
+        else       { Write-Warn (tr "No disponible en este tenant, se omite: $p" "Not available in this tenant, skipping: $p") }
     }
     if ($access.Count -eq 0) { return $null }
 
@@ -812,16 +815,16 @@ foreach ($resKey in $otherPerms.Keys) {
     if ($r) { $entries += $r }
 }
 
-if ($entries.Count -eq 0) { Write-Err "No se resolvio ningun permiso. Abortando."; return }
+if ($entries.Count -eq 0) { Write-Err (tr "No se resolvio ningun permiso. Abortando." "No permission was resolved. Aborting."); return }
 
 Update-MgApplication -ApplicationId $app.Id -RequiredResourceAccess @($entries.Entry)
-Write-Ok "Manifiesto actualizado ($($entries.Count) recursos)"
+Write-Ok (tr "Manifiesto actualizado ($($entries.Count) recursos)" "Manifest updated ($($entries.Count) resources)")
 
 
 # ============================================================
 #  ADMIN CONSENT
 # ============================================================
-Write-Step "Concediendo admin consent"
+Write-Step (tr "Concediendo admin consent" "Granting admin consent")
 
 $granted = 0; $skipped = 0; $failed = 0
 $existing = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id -All
@@ -836,17 +839,17 @@ foreach ($entry in $entries) {
                 -ServicePrincipalId $sp.Id -PrincipalId $sp.Id `
                 -ResourceId $entry.ResourceSp.Id -AppRoleId $ra.id | Out-Null
             $granted++
-        } catch { $failed++; Write-Warn "Fallo: $($_.Exception.Message)" }
+        } catch { $failed++; Write-Warn (tr "Fallo: $($_.Exception.Message)" "Failed: $($_.Exception.Message)") }
     }
 }
-Write-Ok "$granted concedidos | $skipped ya existentes | $failed fallidos"
+Write-Ok (tr "$granted concedidos | $skipped ya existentes | $failed fallidos" "$granted granted | $skipped already existed | $failed failed")
 
 
 # ============================================================
 #  ROLES DE DIRECTORIO
 # ============================================================
 if ($AssignDirRoles) {
-    Write-Step "Asignando roles de directorio"
+    Write-Step (tr "Asignando roles de directorio" "Assigning directory roles")
 
     $roles = @('Global Reader')
     if ($otherPerms.ContainsKey('Exchange'))     { $roles += 'Exchange Administrator' }
@@ -859,19 +862,19 @@ if ($AssignDirRoles) {
             $tpl = Get-MgDirectoryRoleTemplate | Where-Object { $_.DisplayName -eq $roleName }
             if ($tpl) {
                 try { $role = New-MgDirectoryRole -RoleTemplateId $tpl.Id; Start-Sleep -Seconds 5 }
-                catch { Write-Warn "No se pudo activar ${roleName}" }
+                catch { Write-Warn (tr "No se pudo activar ${roleName}" "Could not activate ${roleName}") }
             }
         }
-        if (-not $role) { Write-Warn "Rol no encontrado: $roleName"; continue }
+        if (-not $role) { Write-Warn (tr "Rol no encontrado: $roleName" "Role not found: $roleName"); continue }
 
         $members = Get-MgDirectoryRoleMember -DirectoryRoleId $role.Id -All
-        if ($members.Id -contains $sp.Id) { Write-Ok "$roleName (ya asignado)"; continue }
+        if ($members.Id -contains $sp.Id) { Write-Ok (tr "$roleName (ya asignado)" "$roleName (already assigned)"); continue }
 
         try {
             New-MgDirectoryRoleMemberByRef -DirectoryRoleId $role.Id `
                 -BodyParameter @{ "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$($sp.Id)" }
             Write-Ok $roleName
-        } catch { Write-Warn "Fallo al asignar ${roleName}: $($_.Exception.Message)" }
+        } catch { Write-Warn (tr "Fallo al asignar ${roleName}: $($_.Exception.Message)" "Failed to assign ${roleName}: $($_.Exception.Message)") }
     }
 }
 
@@ -884,12 +887,12 @@ $tenantDomain = (Get-MgOrganization).VerifiedDomains |
 
 Write-Host "`n"
 Write-Host ("=" * 66) -ForegroundColor Cyan
-Write-Host " DATOS DE CONEXION" -ForegroundColor Cyan
+Write-Host (tr " DATOS DE CONEXION" " CONNECTION DETAILS") -ForegroundColor Cyan
 Write-Host ("=" * 66) -ForegroundColor Cyan
 Write-Host " ApplicationId        : $($app.AppId)"
 Write-Host " TenantId             : $tenantDomain"
 Write-Host " CertificateThumbprint: $($cert.Thumbprint)"
-Write-Host " Certificado expira   : $($cert.NotAfter.ToString('yyyy-MM-dd'))"
+Write-Host (tr " Certificado expira   : $($cert.NotAfter.ToString('yyyy-MM-dd'))" " Certificate expires  : $($cert.NotAfter.ToString('yyyy-MM-dd'))")
 Write-Host ("=" * 66) -ForegroundColor Cyan
 
 # El script principal incluye todos los componentes (SPO incluido); el paso 4
@@ -905,8 +908,8 @@ function New-ExportScript {
     $urlLine = if ($Url) { "    -Url                   `"$Url`" ``" + [Environment]::NewLine } else { "" }
 
 @"
-# Generado el $(Get-Date -Format 'yyyy-MM-dd HH:mm')
-# App: $AppDisplayName  |  Certificado expira: $($cert.NotAfter.ToString('yyyy-MM-dd'))
+# $(tr 'Generado el' 'Generated on') $(Get-Date -Format 'yyyy-MM-dd HH:mm')
+# App: $AppDisplayName  |  $(tr 'Certificado expira' 'Certificate expires'): $($cert.NotAfter.ToString('yyyy-MM-dd'))
 $Header
 
 `$AppId      = "$($app.AppId)"
@@ -928,17 +931,17 @@ $urlLine    -Path                  "$Path"
 
 $mainFile = Join-Path $OutDir "M365DSC-Export-Main.ps1"
 New-ExportScript -FilePath $mainFile -Comps $mainComponents -Path $ExportPath `
-    -Header "# Ejecutar en una sesion de PowerShell limpia."
-Write-Ok "Script principal: $mainFile  ($($mainComponents.Count) componentes)"
+    -Header (tr "# Ejecutar en una sesion de PowerShell limpia." "# Run in a clean PowerShell session.")
+Write-Ok (tr "Script principal: $mainFile  ($($mainComponents.Count) componentes)" "Main script: $mainFile  ($($mainComponents.Count) components)")
 
 Disconnect-MgGraph | Out-Null
 
 Write-Host "`n" -NoNewline
-Write-Host "PROXIMOS PASOS" -ForegroundColor Yellow
-Write-Host "  1. Espera 10-15 minutos a que propaguen los permisos." -ForegroundColor Yellow
-Write-Host "  2. Ejecuta el paso 4 (Export) apuntando a $((Split-Path $mainFile -Leaf))." -ForegroundColor Yellow
+Write-Host (tr "PROXIMOS PASOS" "NEXT STEPS") -ForegroundColor Yellow
+Write-Host (tr "  1. Espera 10-15 minutos a que propaguen los permisos." "  1. Wait 10-15 minutes for the permissions to propagate.") -ForegroundColor Yellow
+Write-Host (tr "  2. Ejecuta el paso 4 (Export) apuntando a $((Split-Path $mainFile -Leaf))." "  2. Run step 4 (Export) pointing to $((Split-Path $mainFile -Leaf)).") -ForegroundColor Yellow
 if ($pfxPath) {
-    Write-Host "  *  Para otra maquina: importa el .pfx con" -ForegroundColor Yellow
+    Write-Host (tr "  *  Para otra maquina: importa el .pfx con" "  *  For another machine: import the .pfx with") -ForegroundColor Yellow
     Write-Host "     Import-PfxCertificate -FilePath '$pfxPath' -CertStoreLocation Cert:\CurrentUser\My" -ForegroundColor Yellow
 }
 Write-Host ""
