@@ -31,9 +31,8 @@ Tenants/**/M365TenantConfig.ps1
 
 # Carpetas de trabajo con datos de clientes fuera de la estructura estandar.
 # (Todo lo que este en la raiz salvo lo explicitamente permitido mas abajo.)
-/1.Alemana/
+/1.*/
 /2.*/
-/3.*/
 
 # --- Scripts originales, ya integrados en Invoke-M365DSCReport.ps1 ---
 # (Se mantienen en local como referencia. Si prefieres publicarlos tambien,
