@@ -1829,8 +1829,15 @@ try {
 # ============================================================
 Write-Step (tr "Parseando configuraciones" "Parsing configurations")
 
+# Prefijos de tipo de recurso M365DSC (para delimitar bloques de forma fiable,
+# sin depender del conteo de llaves que confunden los scripts bash embebidos).
+$script:M365ResourcePrefixes = 'AAD|EXO|Intune|SPO|ODSettings|Teams|SC|O365|PP|Azure|Defender|Planner|Fabric|Sentinel|Commerce|ADO|SH|Viva|M365|Office365'
+$script:M365HeaderRegex = '^(\s+)((' + $script:M365ResourcePrefixes + ')[A-Za-z0-9]*)\s+"([^"]*)"\s*$'
+
 # Quita los bloques de recurso que contienen scripts/ADMX embebidos con `$(...) ,
 # que rompen a ConvertTo-DSCObject ("Missing closing ')' in subexpression").
+# Los limites de cada bloque se detectan por el encabezado de recurso (prefijo
+# M365DSC) y por el cierre del Node, NO por conteo de llaves.
 # Devuelve el contenido saneado y la lista de recursos omitidos.
 function Get-DscContentSanitized {
     param([string]$Path)
@@ -1845,25 +1852,27 @@ function Get-DscContentSanitized {
             if ($line -match '^\s*Node\s') { $inNode = $true }
             $i++; continue
         }
-        if ($line -match '^\s{0,16}([A-Za-z][A-Za-z0-9]*)\s+"([^"]+)"\s*$') {
-            $resType = $Matches[1]; $resName = $Matches[2]
+        if ($line -match $script:M365HeaderRegex) {
+            $indent  = $Matches[1].Length
+            $resType = $Matches[2]
+            $resName = $Matches[4]
             $block = [System.Collections.Generic.List[string]]::new()
             $block.Add($line)
-            $j = $i + 1; $depth = 0; $started = $false
+            $j = $i + 1
             while ($j -lt $lines.Count) {
-                $bl = $lines[$j]; $block.Add($bl)
-                $depth += ([regex]::Matches($bl, '\{')).Count
-                $depth -= ([regex]::Matches($bl, '\}')).Count
-                if ($bl -match '\{') { $started = $true }
-                if ($started -and $depth -le 0) { break }
-                $j++
+                $bl = $lines[$j]
+                # Otro encabezado de recurso al mismo indent => fin del bloque
+                if ($bl -match $script:M365HeaderRegex -and $Matches[1].Length -eq $indent) { break }
+                # Cierre del Node: '}' con menos indentacion que el recurso => fin
+                if ($bl -match '^(\s*)\}\s*$' -and $Matches[1].Length -lt $indent) { break }
+                $block.Add($bl); $j++
             }
             if (($block -join "`n").Contains('`$(')) {
                 $removed += "$resType/$resName"
             } else {
                 foreach ($b in $block) { $out.Add($b) }
             }
-            $i = $j + 1; continue
+            $i = $j; continue
         }
         $out.Add($line); $i++
     }
