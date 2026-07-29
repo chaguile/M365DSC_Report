@@ -1,0 +1,68 @@
+# ============================================================
+#  M365DSC Report - archivos que NO deben publicarse
+# ============================================================
+
+# --- Certificados: la clave privada (.pfx) JAMAS debe publicarse ---
+*.pfx
+*.cer
+*.key
+
+# --- Salidas generadas y datos de tenants reales ---
+Export/
+Reports/
+Reportes/
+Componentes/
+
+# Cualquier reporte HTML generado son datos reales de clientes (esten donde esten)
+*.html
+
+# Guia interna (el README la reemplaza; menciona datos internos)
+Guia de Uso.docx
+*.docx
+
+# Configuracion local de Claude Code / editores
+.claude/
+
+# Configuraciones exportadas de tenants reales (datos de clientes)
+# Se ignoran ESTEN DONDE ESTEN (cualquier carpeta), no solo bajo Tenants\.
+**/M365TenantConfig*.ps1
+**/*.psd1
+Tenants/**/M365TenantConfig.ps1
+
+# Carpetas de trabajo con datos de clientes fuera de la estructura estandar.
+# (Todo lo que este en la raiz salvo lo explicitamente permitido mas abajo.)
+/1.Alemana/
+/2.*/
+/3.*/
+
+# --- Scripts originales, ya integrados en Invoke-M365DSCReport.ps1 ---
+# (Se mantienen en local como referencia. Si prefieres publicarlos tambien,
+#  comenta estas 4 lineas.)
+Scripts/Provision-M365DSCApp.ps1
+Scripts/Invoke-M365DSCUnifiedExport.ps1
+Scripts/New-M365DSCBaselineReport.ps1
+Scripts/Remove-M365DSCApp.ps1
+
+# --- Consulta y personalizacion locales ---
+# El de referencia (ConfigurationFileSample.ps1) SI se publica; el real no.
+Scripts/ConfigurationFile.ps1
+Scripts/logo.svg
+Scripts/logo.png
+Scripts/logo.jpg
+Scripts/logo.jpeg
+Scripts/logo.gif
+Scripts/logo.webp
+
+# Logo propio actual (renombralo a Scripts/logo.svg si quieres seguir usandolo en local)
+Scripts/FendariLogoVectorizado.svg
+
+# Copia suelta/antigua del script en la raiz (el bueno esta en Scripts/)
+/Invoke-M365DSCReport.ps1
+
+# --- Trabajo temporal del export ---
+**/_parts/
+
+# --- Varios del sistema ---
+~$*
+Thumbs.db
+.DS_Store
