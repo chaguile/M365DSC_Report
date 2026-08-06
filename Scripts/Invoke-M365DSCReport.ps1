@@ -879,10 +879,21 @@ if ($AssignDirRoles) {
         if ($members.Id -contains $sp.Id) { Write-Ok (tr "$roleName (ya asignado)" "$roleName (already assigned)"); continue }
 
         try {
-            New-MgDirectoryRoleMemberByRef -DirectoryRoleId $role.Id `
-                -BodyParameter @{ "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$($sp.Id)" }
+            # Se usa REST directo: New-MgDirectoryRoleMemberByRef serializa mal el
+            # @odata.id en varias versiones del SDK -> "Invalid URL format in payload".
+            $refBody = @{ "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$($sp.Id)" } | ConvertTo-Json
+            Invoke-MgGraphRequest -Method POST `
+                -Uri "https://graph.microsoft.com/v1.0/directoryRoles/$($role.Id)/members/`$ref" `
+                -Body $refBody -ContentType 'application/json' -ErrorAction Stop | Out-Null
             Write-Ok $roleName
-        } catch { Write-Warn (tr "Fallo al asignar ${roleName}: $($_.Exception.Message)" "Failed to assign ${roleName}: $($_.Exception.Message)") }
+        } catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'already exist|conflicting object|added object references already exist') {
+                Write-Ok (tr "$roleName (ya asignado)" "$roleName (already assigned)")
+            } else {
+                Write-Warn (tr "Fallo al asignar ${roleName}: $msg" "Failed to assign ${roleName}: $msg")
+            }
+        }
     }
 }
 
